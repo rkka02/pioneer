@@ -1,0 +1,17 @@
+name = "tutte3flow"
+version = "0.1.0"
+keywords = ["math", "lean4", "graph-theory", "tutte-3-flow"]
+defaultTargets = ["Tutte3Flow"]
+
+[leanOptions]
+pp.unicode.fun = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "Tutte3Flow"
