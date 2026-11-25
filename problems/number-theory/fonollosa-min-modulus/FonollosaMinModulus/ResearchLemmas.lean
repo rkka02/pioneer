@@ -1,4 +1,5 @@
 import FonollosaMinModulus.Challenge
+import FonollosaMinModulus.SetPairCounting
 import Mathlib.Data.ZMod.Basic
 import Mathlib.Data.Finset.Powerset
 import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
@@ -1147,3 +1148,494 @@ theorem triple_multiplicity_card_le {α : Type*} (A : Finset α) (m : α → ℕ
     _ = A.card := hm
 
 end FonollosaMinModulus
+
+namespace FonollosaMinModulus.RankSlots
+open Finset SetPairs
+variable {N : ℕ} {A : Finset (ZMod N)} {a b : ZMod N}
+
+structure Rule (α : Type) where
+  p : ℕ
+  q : ℕ
+  D : Finset α
+  C : Finset α
+  deriving DecidableEq
+
+private abbrev Rest (A : Finset (ZMod N)) (a b : ZMod N) := (A.erase a).erase b
+private def weight (u : Rule (ZMod N)) := 8-(u.p+u.q)
+
+structure Admissible (R : Finset (ZMod N)) (a b : ZMod N) (u : Rule (ZMod N)) : Prop where
+  drop_sub : u.D ⊆ R
+  take_sub : u.C ⊆ R
+  apart : Disjoint u.D u.C
+  drop_min : 2 ≤ u.p
+  take_min : 2 ≤ u.q
+  length : u.p+u.q ≤ 7
+  rank_eq : u.C.card + u.q = u.D.card + u.p
+  sum_eq : (∑ x ∈ u.C,x) - (∑ x ∈ u.D,x) = (u.p : ZMod N)*b - (u.q : ZMod N)*a
+
+private noncomputable def rules (R : Finset (ZMod N)) (a b : ZMod N) : Finset (Rule (ZMod N)) := by
+  classical
+  exact (((range 6 ×ˢ range 6) ×ˢ (R.powerset ×ˢ R.powerset)).image
+    (fun x => ⟨x.1.1,x.1.2,x.2.1,x.2.2⟩)).filter (Admissible R a b)
+
+private theorem mem_rules {R : Finset (ZMod N)} {u : Rule (ZMod N)} :
+    u ∈ rules R a b ↔ Admissible R a b u := by
+  classical
+  constructor
+  · intro h; exact (mem_filter.mp h).2
+  · intro h
+    refine mem_filter.mpr ⟨mem_image.mpr ⟨((u.p,u.q),(u.D,u.C)),?_,by cases u; rfl⟩,h⟩
+    have := h.length; have := h.take_min; have := h.drop_min
+    simp only [mem_product,mem_range,mem_powerset]
+    exact ⟨⟨by omega,by omega⟩,h.drop_sub,h.take_sub⟩
+
+/-- Two different exchanges cross whenever the pivot coefficients differ by
+at most one in each coordinate. The sizes of the exchanged sets may differ. -/
+theorem unit_square_cross (hA : IsValidMod A) (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b)
+    {u v : Rule (ZMod N)} (hu : Admissible (Rest A a b) a b u)
+    (hv : Admissible (Rest A a b) a b v) (hne : u ≠ v)
+    (hp : u.p ≤ v.p+1) (hq : v.q ≤ u.q+1) :
+    ∃ x ∈ u.D, x ∈ v.C := by
+  classical
+  by_contra h
+  have no (x) : x ∈ u.D → x ∉ v.C := fun hu hv => h ⟨x,hu,hv⟩
+  let R := Rest A a b
+  have hR : R ⊆ A := (erase_subset ..).trans (erase_subset ..)
+  have offa : a ∉ R := fun m => (mem_erase.mp (mem_erase.mp m).2).1 rfl
+  have offb : b ∉ R := fun m => (mem_erase.mp m).1 rfl
+  have au := fun (x : ZMod N) (hx : x ∉ R) =>
+    And.intro (mt (@hu.drop_sub x) hx) (mt (@hu.take_sub x) hx)
+  have av := fun (x : ZMod N) (hx : x ∉ R) =>
+    And.intro (mt (@hv.drop_sub x) hx) (mt (@hv.take_sub x) hx)
+  let c (x : ZMod N) := mark u.C x - mark u.D x + mark v.D x - mark v.C x +
+    spike a ((u.q : ℤ)-v.q) x + spike b ((v.p : ℤ)-u.p) x
+  have zero := valid_iff_signed.mp hA c (by
+    intro x _
+    by_cases ax : a = x
+    · subst x; simp [c,mark,spike,hab.symm,(au _ offa).1,(au _ offa).2,(av _ offa).1,(av _ offa).2]; omega
+    by_cases bx : b = x
+    · subst x; simp [c,mark,spike,hab,(au _ offb).1,(au _ offb).2,(av _ offb).1,(av _ offb).2]; omega
+    have nn := no x
+    simp only [c,spike,ite_eq_right ax,ite_eq_right bx,add_zero,mark]
+    split_ifs <;> first | omega | exact False.elim (nn (by assumption) (by assumption))) (by
+    simp only [c,sum_add_distrib,sum_sub_distrib,sum_mark (hu.take_sub.trans hR),
+      sum_mark (hu.drop_sub.trans hR),sum_mark (hv.take_sub.trans hR),sum_mark (hv.drop_sub.trans hR),
+      sum_spike ha,sum_spike hb]
+    have := hu.rank_eq; have := hv.rank_eq; omega) (by
+    simp only [c,Int.cast_add,Int.cast_sub,sub_mul,add_mul,sum_add_distrib,sum_sub_distrib,
+      weight_mark (hu.take_sub.trans hR),weight_mark (hu.drop_sub.trans hR),
+      weight_mark (hv.take_sub.trans hR),weight_mark (hv.drop_sub.trans hR),weight_spike ha,weight_spike hb]
+    push_cast
+    linear_combination hu.sum_eq - hv.sum_eq)
+  have eqa := zero a ha
+  have eqb := zero b hb
+  simp [c,mark,spike,hab.symm,(au _ offa).1,(au _ offa).2,(av _ offa).1,(av _ offa).2] at eqa
+  simp [c,mark,spike,hab,(au _ offb).1,(au _ offb).2,(av _ offb).1,(av _ offb).2] at eqb
+  have uq : u.q = v.q := by omega
+  have up : u.p = v.p := by omega
+  have eqbits (x) : (x ∈ u.D ↔ x ∈ v.D) ∧ (x ∈ u.C ↔ x ∈ v.C) := by
+    by_cases hx : x ∈ R
+    · have he := zero x (hR hx)
+      have du := @disjoint_left.mp hu.apart x
+      have dv := @disjoint_left.mp hv.apart x
+      simp only [c,up,uq,sub_self,spike,ite_self,add_zero,mark] at he
+      split_ifs at he <;> simp_all
+    · obtain ⟨h1,h2⟩ := au x hx
+      obtain ⟨h3,h4⟩ := av x hx
+      simp [h1,h2,h3,h4]
+  have uD := Finset.ext (fun x => (eqbits x).1)
+  have uC := Finset.ext (fun x => (eqbits x).2)
+  exact hne (by cases u; cases v; congr)
+
+private def charge (R : Finset (ZMod N)) (u : Rule (ZMod N)) :=
+  weight u * (cylinder R u.D u.C).card
+
+/-- Eight consecutive labels, charged to the smaller of the two rank-centred
+quotient shifts and its complementary pivot coefficient. -/
+theorem eight_slots [NeZero N] (hA : IsValidMod A) (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b) :
+    let R := Rest A a b
+    8 * 2^R.card ≤ 2*N + ∑ u ∈ rules R a b, charge R u := by
+  classical
+  let R := Rest A a b
+  let I := rules R a b
+  let cell (u : Rule (ZMod N)) := Ico (u.p+u.q) 8 ×ˢ cylinder R u.D u.C
+  let cut := I.biUnion cell
+  let allSlots := range 8 ×ˢ R.powerset
+  let keep := allSlots \ cut
+  let ht (i : ℕ) (S : Finset (ZMod N)) := (i : ℤ)-S.card
+  let F (S : Finset (ZMod N)) := ∑ x ∈ S,(x-a)
+  let f (t : ℕ × Finset (ZMod N)) := (F t.2 + ((ht t.1 t.2/2 : ℤ) : ZMod N)*(b-a),ht t.1 t.2%2)
+  have ordered {i j : ℕ} {S T : Finset (ZMod N)} (hij : j ≤ i)
+      (his : (i,S) ∈ keep) (hjt : (j,T) ∈ keep) (he : f (i,S)=f (j,T)) :
+      (i,S)=(j,T) := by
+    obtain ⟨hi,hs⟩ := mem_product.mp (mem_sdiff.mp his).1
+    obtain ⟨_,ht'⟩ := mem_product.mp (mem_sdiff.mp hjt).1
+    have si : S ⊆ R := mem_powerset.mp hs
+    have ti : T ⊆ R := mem_powerset.mp ht'
+    have il : i < 8 := mem_range.mp hi
+    let p := ht i S/2-ht j T/2
+    let q := (i : ℤ)-j-p
+    have hpar := congrArg Prod.snd he
+    change ht i S%2 = ht j T%2 at hpar
+    have rank : (T.card : ℤ)-S.card = p-q := by dsimp [p,q,ht] at *; omega
+    have total : p+q=(i : ℤ)-j := by dsimp [q]; ring
+    have hw := congrArg Prod.fst he
+    change F S + ((ht i S/2 : ℤ) : ZMod N)*(b-a) = F T + ((ht j T/2 : ℤ) : ZMod N)*(b-a) at hw
+    have shift : F T = F S + (p : ZMod N)*(b-a) := by dsimp [p]; push_cast; linear_combination -hw
+    by_cases small : p<2 ∨ q<2
+    · have eq := subsets_eq_of_pivot_interval hA ha hb hab ti si p (by omega) (by omega) shift
+      subst T
+      have nzd : b-a ≠ 0 := sub_ne_zero.mpr hab.symm
+      have zp : (p : ZMod N)*(b-a)=0 := by linear_combination -shift
+      have : p=0 ∨ p=1 := by omega
+      rcases this with hh|hh
+      · exact Prod.ext (by omega) rfl
+      · simp [hh,nzd] at zp
+    · let u : Rule (ZMod N) := ⟨p.toNat,q.toNat,S \ T,T \ S⟩
+      have pp : (p.toNat : ℤ)=p := Int.toNat_of_nonneg (by omega)
+      have qq : (q.toNat : ℤ)=q := Int.toNat_of_nonneg (by omega)
+      have card := card_sdiff_add_card_inter S T
+      have card' := card_sdiff_add_card_inter T S
+      rw [inter_comm T S] at card'
+      have member : u ∈ I := by
+        apply mem_rules.mpr
+        refine ⟨sdiff_subset.trans si,sdiff_subset.trans ti,disjoint_left.mpr ?_,
+          by dsimp [u]; omega, by dsimp [u]; omega, by dsimp [u]; omega, by dsimp [u]; omega,?_⟩
+        · intro x hx hy; exact (mem_sdiff.mp hy).2 (mem_sdiff.mp hx).1
+        · change (∑ x ∈ T \ S,x) - (∑ x ∈ S \ T,x) = (p.toNat : ZMod N)*b-(q.toNat : ZMod N)*a
+          rw [sum_sdiff_sub_sum_sdiff]
+          have rc := congrArg (Int.cast : ℤ → ZMod N) rank
+          have pc := congrArg (Int.cast : ℤ → ZMod N) pp
+          have qc := congrArg (Int.cast : ℤ → ZMod N) qq
+          push_cast at rc pc qc
+          rw [pc,qc]
+          simp only [F,sum_sub_distrib,sum_const,nsmul_eq_mul] at shift
+          linear_combination shift + a*rc
+      exfalso
+      apply (mem_sdiff.mp his).2
+      refine mem_biUnion.mpr ⟨u,member,mem_product.mpr ⟨mem_Ico.mpr ⟨?_,il⟩,?_⟩⟩
+      · dsimp [u]; omega
+      · exact mem_filter.mpr ⟨hs,sdiff_subset,disjoint_left.mpr (fun x hx hy => (mem_sdiff.mp hy).2 hx)⟩
+  have bound := card_le_card_of_injOn (s := keep) (t := (univ : Finset (ZMod N)) ×ˢ ({0,1} : Finset ℤ)) f
+    (by
+      rintro ⟨i,S⟩ _
+      refine mem_product.mpr ⟨mem_univ _,?_⟩
+      change ht i S % 2 ∈ ({0,1} : Finset ℤ)
+      simp only [mem_insert,mem_singleton]; omega) (by
+      rintro ⟨i,S⟩ hi ⟨j,T⟩ hj he
+      rcases le_total j i with h|h
+      · exact ordered h hi hj he
+      · exact (ordered h hj hi he.symm).symm)
+  have cutbound : cut.card ≤ ∑ u ∈ I,charge R u := by
+    simpa [cut,cell,charge,weight,Nat.card_Ico] using (card_biUnion_le (s := I) (t := cell))
+  have card := card_le_card_sdiff_add_card (s := allSlots) (t := cut)
+  change allSlots.card ≤ keep.card+cut.card at card
+  simp only [allSlots,card_product,card_range,card_powerset] at card
+  simp [ZMod.card] at bound
+  change 8*2^R.card ≤ 2*N+∑ u ∈ I,charge R u
+  omega
+
+private theorem sum_le_box [NeZero N] (hA : IsValidMod A) (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b)
+    (I : Finset (Rule (ZMod N))) (K W : ℕ)
+    (legal : ∀ u ∈ I, Admissible (Rest A a b) a b u)
+    (box : ∀ u ∈ I, ∀ v ∈ I, u.p ≤ v.p+1 ∧ v.q ≤ u.q+1)
+    (ratio : ∀ u ∈ I, K*weight u*(u.D.card+u.C.card).choose u.D.card ≤ W*2^(u.D.card+u.C.card)) :
+    K*(∑ u ∈ I,charge (Rest A a b) u) ≤ W*2^(Rest A a b).card :=
+  weighted ZMod.val (ZMod.val_injective N) I _ Rule.D Rule.C Rule.D Rule.C weight K W
+    (fun u hu => ⟨(legal u hu).drop_sub,(legal u hu).take_sub,(legal u hu).apart⟩)
+    (fun u hu => (legal u hu).apart)
+    (fun u hu v hv hn => unit_square_cross hA ha hb hab (legal u hu) (legal v hv) hn
+      (box u hu v hv).1 (box u hu v hv).2) ratio
+
+private theorem outer_bound [NeZero N] (hA : IsValidMod A) (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b)
+    (I : Finset (Rule (ZMod N)))
+    (legal : ∀ u ∈ I, Admissible (Rest A a b) a b u)
+    (side : (∀ u ∈ I, 4 ≤ u.p) ∨ (∀ u ∈ I, 4 ≤ u.q)) :
+    2*(∑ u ∈ I,charge (Rest A a b) u) ≤ 2^(Rest A a b).card := by
+  rw [← one_mul (2^(Rest A a b).card)]
+  apply sum_le_box hA ha hb hab I 2 1 legal
+  · intro u hu v hv
+    have U := legal u hu; have V := legal v hv
+    have := U.drop_min; have := U.take_min; have := U.length
+    have := V.drop_min; have := V.take_min; have := V.length
+    rcases side with h|h <;> have := h u hu <;> have := h v hv <;> omega
+  · intro u hu
+    have U := legal u hu
+    have := U.rank_eq; have := U.drop_min; have := U.take_min; have := U.length
+    have s : 4 ≤ u.p ∨ 4 ≤ u.q := side.imp (fun h => h u hu) (fun h => h u hu)
+    simp only [one_mul,weight]
+    by_cases two : u.p+u.q=6
+    · rw [two]; exact binom_quarter_gap_two (by omega)
+    · have total : u.p+u.q=7 := by omega
+      rw [total]; exact binom_half (by omega)
+
+private def singletonRule (u : Rule (ZMod N)) := u.p=2 ∧ u.q=2 ∧ u.D.card=1
+
+private theorem empty_shift {R : Finset (ZMod N)} {u : Rule (ZMod N)} (hu : Admissible R a b u)
+    {k : ℕ} (hp : u.p=k) (hq : u.q=k) (h : u.D.card+u.C.card=0) :
+    (k : ZMod N)*(b-a)=0 := by
+  have d := card_eq_zero.mp (show u.D.card=0 by omega)
+  have c := card_eq_zero.mp (show u.C.card=0 by omega)
+  have e := hu.sum_eq
+  simp only [d,c,sum_empty,sub_self,hp,hq] at e
+  linear_combination -e
+
+private theorem core_bound [NeZero N] (hA : IsValidMod A) (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b)
+    (h4 : 4*(b-a)≠0) (h3 : 3*(b-a)≠0)
+    (I : Finset (Rule (ZMod N)))
+    (legal : ∀ u ∈ I, Admissible (Rest A a b) a b u)
+    (core : ∀ u ∈ I, u.p≤3 ∧ u.q≤3) :
+    2*(∑ u ∈ I,charge (Rest A a b) u) ≤ 3*2^(Rest A a b).card := by
+  classical
+  let R := Rest A a b
+  have box (u) (hu : u ∈ I) (v) (hv : v ∈ I) : u.p ≤ v.p+1 ∧ v.q ≤ u.q+1 := by
+    have := core u hu; have := core v hv; have := (legal v hv).drop_min; have := (legal u hu).take_min
+    omega
+  have h2 : 2*(b-a)≠0 := fun h => h4 (by linear_combination 2*h)
+  by_cases existsS : ∃ u ∈ I, singletonRule u
+  · obtain ⟨s,hs,sp,sq,sd⟩ := existsS
+    have ls := legal s hs
+    have sc : s.C.card=1 := by have := ls.rank_eq; omega
+    obtain ⟨x,hx⟩ := card_eq_one.mp sd
+    obtain ⟨y,hy⟩ := card_eq_one.mp sc
+    have xy : x ≠ y := by have := ls.apart; simpa [hx,hy] using this
+    have sy : y-x=2*(b-a) := by
+      have e := ls.sum_eq
+      simp only [hx,hy,sum_singleton,sp,sq,Nat.cast_ofNat] at e
+      linear_combination e
+    let J := I.erase s
+    have JI : J ⊆ I := erase_subset ..
+    have cross {u v} (hu : u ∈ I) (hv : v ∈ I) (hne : u ≠ v) :=
+      unit_square_cross hA ha hb hab (legal u hu) (legal v hv) hne (box u hu v hv).1 (box u hu v hv).2
+    have forced {u} (hu : u ∈ J) : y ∈ u.D ∧ x ∈ u.C := by
+      have hn := (mem_erase.mp hu).1
+      obtain ⟨t,td,tc⟩ := cross (JI hu) hs hn
+      obtain ⟨v,vd,vc⟩ := cross hs (JI hu) hn.symm
+      rw [hy,mem_singleton] at tc
+      rw [hx,mem_singleton] at vd
+      exact ⟨tc ▸ td,vd ▸ vc⟩
+    have rest := weighted ZMod.val (ZMod.val_injective N) J R Rule.D Rule.C
+      (fun u => u.D.erase y) (fun u => u.C.erase x) weight 2 1
+      (fun u hu => ⟨(legal u (JI hu)).drop_sub,(legal u (JI hu)).take_sub,(legal u (JI hu)).apart⟩)
+      (fun u hu => (legal u (JI hu)).apart.mono (erase_subset ..) (erase_subset ..)) (by
+        intro u hu v hv hn
+        obtain ⟨z,zd,zc⟩ := cross (JI hu) (JI hv) hn
+        have zy : z ≠ y := fun eq => disjoint_left.mp (legal v (JI hv)).apart (eq.symm ▸ (forced hv).1) zc
+        have zx : z ≠ x := fun eq => disjoint_left.mp (legal u (JI hu)).apart zd (eq.symm ▸ (forced hu).2)
+        exact ⟨z,mem_erase.mpr ⟨zy,zd⟩,mem_erase.mpr ⟨zx,zc⟩⟩) (by
+        intro u hu
+        let d := (u.D.erase y).card
+        let c := (u.C.erase x).card
+        have de : u.D.card=d+1 := (card_erase_add_one (forced hu).1).symm
+        have ce : u.C.card=c+1 := (card_erase_add_one (forced hu).2).symm
+        have pow : 2^(u.D.card+u.C.card)=4*2^(d+c) := by
+          rw [show u.D.card+u.C.card=d+c+2 by omega,pow_add]; ring
+        have lu := legal u (JI hu)
+        have := lu.drop_min; have := lu.take_min; have := lu.rank_eq; have := core u (JI hu)
+        change 2*weight u*(d+c).choose d ≤ 1*2^(u.D.card+u.C.card)
+        rw [pow,one_mul]
+        have ww : weight u ≤ 4 := by dsimp [weight]; omega
+        by_cases h : 1 ≤ d+c
+        · have ch := binom_half (k := d) h
+          calc
+            _ ≤ 2*4*(d+c).choose d := Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ ww)
+            _ ≤ _ := by omega
+        · have dz : d=0 := by omega
+          have cz : c=0 := by omega
+          have dc : u.D={y} := eq_singleton_iff_unique_mem.mpr ⟨(forced hu).1,by
+            intro z hz; by_contra ne
+            have emp := card_eq_zero.mp dz
+            exact (notMem_empty z) (emp ▸ mem_erase.mpr ⟨ne,hz⟩)⟩
+          have cc : u.C={x} := eq_singleton_iff_unique_mem.mpr ⟨(forced hu).2,by
+            intro z hz; by_contra ne
+            have emp := card_eq_zero.mp cz
+            exact (notMem_empty z) (emp ▸ mem_erase.mpr ⟨ne,hz⟩)⟩
+          have not22 : ¬(u.p=2 ∧ u.q=2) := by
+            rintro ⟨up,uq⟩
+            have e := lu.sum_eq
+            simp only [dc,cc,sum_singleton,up,uq,Nat.cast_ofNat] at e
+            exact h4 (by linear_combination -e - sy)
+          have ww' : weight u ≤ 2 := by dsimp [weight]; omega
+          simpa [dz,cz] using (show 2*weight u ≤ 4 by omega))
+    change 2*(∑ u ∈ J,charge R u) ≤ 1*2^R.card at rest
+    have first := cylinder_scaled ls.drop_sub ls.take_sub ls.apart
+    have wfour : weight s=4 := by simp [weight,sp,sq]
+    have fav : charge R s ≤ 2^R.card := by
+      simp only [charge,wfour]
+      simpa [sd,sc,Nat.mul_comm] using first
+    have all := sum_erase_add I (fun u => charge R u) hs
+    change (∑ u ∈ J,charge R u)+charge R s = _ at all
+    change 2*(∑ u ∈ I,charge R u) ≤ 3*2^R.card
+    omega
+  · apply sum_le_box hA ha hb hab I 2 3 legal box
+    intro u hu
+    have lu := legal u hu
+    have := lu.rank_eq; have := lu.drop_min; have := lu.take_min; have := core u hu
+    have nos : ¬singletonRule u := fun he => existsS ⟨u,hu,he⟩
+    by_cases both : u.p=2 ∧ u.q=2
+    · have w : weight u=4 := by simp [weight,both.1,both.2]
+      have positive : u.D.card+u.C.card≠0 := fun e => h2 (empty_shift lu both.1 both.2 e)
+      have ns : u.D.card ≠ 1 := fun e => nos ⟨both.1,both.2,e⟩
+      rw [w]; exact binom_three_eighths (by omega)
+    · have w : weight u ≤ 3 := by dsimp [weight]; omega
+      have pos : 1 ≤ u.D.card+u.C.card := by
+        by_contra! e
+        have h := empty_shift lu (show u.p=3 by omega) (show u.q=3 by omega) (by omega)
+        exact h3 h
+      have ch := binom_half (k := u.D.card) pos
+      calc
+        _ ≤ 2*3*(u.D.card+u.C.card).choose u.D.card := Nat.mul_le_mul_right _ (Nat.mul_le_mul_left _ w)
+        _ ≤ _ := by omega
+
+/-- The eight-label bound for a pair whose difference survives multiplication by four. -/
+theorem eleven_sixteenths_of_pivots [NeZero N] (hA : IsValidMod A)
+    (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b) (h4 : 4*(b-a)≠0) :
+    11*2^(A.card-2) ≤ 4*N := by
+  classical
+  by_cases h3 : 3*(b-a)=0
+  · have := order_three_bound hA ha hb hab h3; omega
+  let R := Rest A a b
+  let I := rules R a b
+  let J := I.filter (fun u => ¬4≤u.p)
+  let L := I.filter (fun u => 4≤u.p)
+  let M := J.filter (fun u => 4≤u.q)
+  let B := J.filter (fun u => ¬4≤u.q)
+  have JL : J ⊆ I := filter_subset ..
+  have legal (u) (hu : u ∈ I) := mem_rules.mp hu
+  have ll := outer_bound hA ha hb hab L (fun u hu => legal u (mem_filter.mp hu).1)
+    (Or.inl (fun _ hu => (mem_filter.mp hu).2))
+  have mm := outer_bound hA ha hb hab M (fun u hu => legal u (JL (mem_filter.mp hu).1))
+    (Or.inr (fun _ hu => (mem_filter.mp hu).2))
+  have bb := core_bound hA ha hb hab h4 h3 B (fun u hu => legal u (JL (mem_filter.mp hu).1))
+    (fun u hu => by
+      obtain ⟨hj,hq⟩ := mem_filter.mp hu
+      have hp := (mem_filter.mp hj).2
+      omega)
+  let cost := charge R
+  have split := sum_filter_add_sum_filter_not I (fun u => 4 ≤ u.p) cost
+  have split' := sum_filter_add_sum_filter_not J (fun u => 4 ≤ u.q) cost
+  change (∑ u ∈ L,cost u)+(∑ u ∈ J,cost u)=∑ u ∈ I,cost u at split
+  change (∑ u ∈ M,cost u)+(∑ u ∈ B,cost u)=∑ u ∈ J,cost u at split'
+  have slots := eight_slots hA ha hb hab
+  change 8*2^R.card ≤ 2*N+∑ u ∈ I,cost u at slots
+  change 2*(∑ u ∈ L,cost u) ≤ 2^R.card at ll
+  change 2*(∑ u ∈ M,cost u) ≤ 2^R.card at mm
+  change 2*(∑ u ∈ B,cost u) ≤ 3*2^R.card at bb
+  have er : R.card = A.card-2 := by
+    simp only [R,Rest,card_erase_of_mem (mem_erase.mpr ⟨hab.symm,hb⟩),card_erase_of_mem ha,Nat.sub_sub]
+  rw [← er]; omega
+
+private theorem involution_unique [NeZero N] {x y : ZMod N} (hx : x≠0) (hy : y≠0)
+    (h2x : 2*x=0) (h2y : 2*y=0) : x=y := by
+  have xv := ((ZMod.neg_eq_self_iff x).mp (show -x=x by linear_combination -h2x)).resolve_left hx
+  have yv := ((ZMod.neg_eq_self_iff y).mp (show -y=y by linear_combination -h2y)).resolve_left hy
+  exact ZMod.val_injective N (by omega)
+
+theorem exists_four_pivot [NeZero N] (hA : IsValidMod A) (hn : 3≤A.card) :
+    ∃ a ∈ A, ∃ b ∈ A, a≠b ∧ 4*(b-a)≠0 := by
+  classical
+  obtain ⟨a,ha⟩ := card_pos.mp (show 0<A.card by omega)
+  have ca := card_erase_of_mem ha
+  obtain ⟨b,hb,c,hc,hbc⟩ := one_lt_card.mp (show 1<(A.erase a).card by omega)
+  obtain ⟨hba,hb⟩ := mem_erase.mp hb
+  obtain ⟨hca,hc⟩ := mem_erase.mp hc
+  by_cases fourb : 4*(b-a)=0
+  swap
+  · exact ⟨a,ha,b,hb,hba.symm,fourb⟩
+  by_cases fourc : 4*(c-a)=0
+  swap
+  · exact ⟨a,ha,c,hc,hca.symm,fourc⟩
+  exfalso
+  have b0 := sub_ne_zero.mpr hba
+  have c0 := sub_ne_zero.mpr hca
+  have pb := fun (e : a+c=b+b) => not_valid_of_midpoint ha hb hc hba.symm hbc hca.symm e hA
+  have pc := fun (e : a+b=c+c) => not_valid_of_midpoint ha hc hb hca.symm hbc.symm hba.symm e hA
+  have pa := fun (e : b+c=a+a) => not_valid_of_midpoint hb ha hc hba hca.symm hbc e hA
+  by_cases twob : 2*(b-a)=0
+  · by_cases twoc : 2*(c-a)=0
+    · exact hbc (sub_left_inj.mp (involution_unique b0 c0 twob twoc))
+    · have eq := involution_unique b0 twoc twob (show 2*(2*(c-a))=0 by linear_combination fourc)
+      exact pc (by linear_combination eq)
+  · by_cases twoc : 2*(c-a)=0
+    · have eq := involution_unique c0 twob twoc (show 2*(2*(b-a))=0 by linear_combination fourb)
+      exact pb (by linear_combination eq)
+    · have eq := involution_unique twob twoc
+        (show 2*(2*(b-a))=0 by linear_combination fourb)
+        (show 2*(2*(c-a))=0 by linear_combination fourc)
+      have diff := involution_unique (sub_ne_zero.mpr hbc) twob
+        (show 2*(b-c)=0 by linear_combination eq)
+        (show 2*(2*(b-a))=0 by linear_combination fourb)
+      exact pa (by linear_combination -diff)
+
+/-- A valid cyclic set of size at least three requires N ≥ (11/16) 2^|A|. -/
+theorem cyclic_eleven_sixteenths [NeZero N] (hA : IsValidMod A) (hn : 3≤A.card) :
+    11*2^(A.card-2) ≤ 4*N := by
+  obtain ⟨a,ha,b,hb,hab,h4⟩ := exists_four_pivot hA hn
+  exact eleven_sixteenths_of_pivots hA ha hb hab h4
+
+theorem ten_modulus_ge_704 [NeZero N] (hA : IsValidMod A) (hn : A.card=10) : 704≤N := by
+  have h := cyclic_eleven_sixteenths hA (by omega)
+  rw [hn] at h
+  norm_num at h
+  omega
+
+end FonollosaMinModulus.RankSlots
+
+namespace FonollosaMinModulus.RankSlots
+open Finset SetPairs
+
+/-- A nondegenerate affine copy of {0,1,3} gives the three-quarters bound.
+The one-sided exchange exhausts all signatures with second coefficient at most three. -/
+theorem three_quarters_of_triple {N : ℕ} [NeZero N] {A : Finset (ZMod N)}
+    (hA : IsValidMod A) {a b c : ZMod N} (ha : a ∈ A) (hb : b ∈ A) (hc : c ∈ A)
+    (hab : a ≠ b) (hca : c ≠ a) (hcb : c ≠ b) (eq : c=3*b-2*a) :
+    3*2^(A.card-2) ≤ N := by
+  classical
+  let R := Rest A a b
+  let I := rules R a b
+  let J := I.filter (fun u => 4≤u.q)
+  let K := I.filter (fun u => ¬4≤u.q)
+  let e : Rule (ZMod N) := ⟨3,2,∅,{c}⟩
+  have he : Admissible R a b e :=
+    ⟨empty_subset _,singleton_subset_iff.mpr (mem_erase.mpr ⟨hcb,mem_erase.mpr ⟨hca,hc⟩⟩),
+     disjoint_empty_left _,by simp [e],by simp [e],by simp [e],by simp [e],by simpa [e] using eq⟩
+  have small : K={e} := by
+    ext u
+    rw [mem_singleton]
+    constructor
+    · intro hu; by_contra hn
+      obtain ⟨hi,hq⟩ := mem_filter.mp hu
+      have lu := mem_rules.mp hi
+      have := lu.drop_min
+      obtain ⟨x,hx,_⟩ := unit_square_cross hA ha hb hab he lu (Ne.symm hn)
+        (by dsimp [e]; omega) (by dsimp [e]; omega)
+      exact (notMem_empty x) hx
+    · rintro rfl; exact mem_filter.mpr ⟨mem_rules.mpr he,by simp [e]⟩
+  have outer := outer_bound hA ha hb hab J (fun _ hu => mem_rules.mp (mem_filter.mp hu).1)
+    (Or.inr (fun _ hu => (mem_filter.mp hu).2))
+  have area := cylinder_scaled he.drop_sub he.take_sub he.apart
+  change (cylinder R ∅ {c}).card*2^(Finset.card (∅ : Finset (ZMod N))+({c}:Finset _).card) ≤ _ at area
+  simp only [card_empty,card_singleton,zero_add,pow_one] at area
+  have split := sum_filter_add_sum_filter_not I (fun u => 4≤u.q) (charge R)
+  change (∑ u ∈ J,charge R u)+(∑ u ∈ K,charge R u)=∑ u ∈ I,charge R u at split
+  rw [small,sum_singleton] at split
+  change (∑ u ∈ J,charge R u)+3*(cylinder R ∅ {c}).card=∑ u ∈ I,charge R u at split
+  change 2*(∑ u ∈ J,charge R u) ≤ 2^R.card at outer
+  have h := eight_slots hA ha hb hab
+  change 8*2^R.card ≤ 2*N+∑ u ∈ I,charge R u at h
+  have er : R.card = A.card-2 := by
+    simp only [R,Rest,card_erase_of_mem (mem_erase.mpr ⟨hab.symm,hb⟩),card_erase_of_mem ha,Nat.sub_sub]
+  rw [← er]; omega
+
+end FonollosaMinModulus.RankSlots
+
+namespace FonollosaMinModulus.RankSlots
+
+/-- The four even signatures certify the ceiling of the local square relaxation
+for any slope, number of layers, and consecutive label interval. -/
+theorem four_signature_relaxation_ceiling (k u L : ℕ) (hu : u ≤ k) :
+    8*L ≤ 22*k + 3*(L-2*k) + 2*(L-(2*(k-u)+4*u)) +
+      2*(L-(4*(k-u)+2*u)) + 4*(L-4*k) := by
+  omega
+
+end FonollosaMinModulus.RankSlots

@@ -29,3 +29,17 @@ open FonollosaMinModulus
 #print axioms RankPacking.cyclic_nine_sixteenths
 #print axioms signed_zero_of_pivot_interval
 #print axioms triple_multiplicity_card_le
+#print axioms SetPairs.count_separated
+#print axioms SetPairs.cylinder_scaled
+#print axioms SetPairs.weighted
+#print axioms SetPairs.binom_half
+#print axioms SetPairs.binom_three_eighths
+#print axioms SetPairs.binom_quarter_gap_two
+#print axioms RankSlots.unit_square_cross
+#print axioms RankSlots.eight_slots
+#print axioms RankSlots.eleven_sixteenths_of_pivots
+#print axioms RankSlots.exists_four_pivot
+#print axioms RankSlots.cyclic_eleven_sixteenths
+#print axioms RankSlots.ten_modulus_ge_704
+#print axioms RankSlots.three_quarters_of_triple
+#print axioms RankSlots.four_signature_relaxation_ceiling

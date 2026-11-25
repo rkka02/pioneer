@@ -397,3 +397,200 @@ for n in 593 598 599 601 613; do /tmp/fon-round2-ten "$n" 0 2 "$n" 4; done
 ```
 
 Lean 4.36.0 built the root module. An invocation replaying both modules concurrently crashed in the import loader. The individual module replays listed above and the fresh-environment replay each exited successfully. All 27 public declarations in the audit use only `propext`, `Classical.choice`, and `Quot.sound`. The local Lean files contain no proof placeholders or native decision tactics. Lake reports legacy-import module-format warnings. The frozen challenge had the requested SHA-256 before and after Round 2, `3a275f872e63da865d3636a81abd5d9065e75716389f450564d42515666d1d91`.
+
+## Round 3 — Final Push & Campaign Synthesis
+
+**Case C.** Every valid cyclic set of size $n\ge3$ satisfies
+
+$$
+                         N\ \ge\ \frac{11}{16}\,2^n. \tag{R3.1}
+$$
+
+This improves the Round 2 coefficient $9/16$ by $1/8$ and gives $N\ge704$ at $n=10$. A nondegenerate affine copy of $\{0,1,3\}$ gives $N\ge(3/4)2^n$, even when its step is a nonunit. Both statements apply directly to the frozen definition. For ten points, a finite refinement and exhaustive computation raise the floor to **724**. Two independent searches exclude **1015**, immediately below the conjectured minimum of 1016. The neighboring moduli **1013 and 1014** are also excluded. Every ten-point counterexample must therefore satisfy **$724\le N\le1012$**. [Lean proofs](FonollosaMinModulus/ResearchLemmas.lean) · [Census results](scripts/round3_results.txt)
+
+Inequality (R3.1) exceeds Sitjar’s general formula at every $n\ge6$. Write $t=2^{n-4}$. The new gain over $2^{n-1}$ is $3t$. This exceeds $2n-2$ at six and doubles at each step. The other term in Sitjar’s gain is $\lceil(8t-1)/(n-1)\rceil\le2t$ since $n-1\ge5$. [Sitjar, Theorem A](https://doi.org/10.5281/zenodo.24228247)
+
+### Eight labels and exchanges of different sizes
+
+Fix $a\ne b$ in $A$, put $d=b-a$, $R=A\setminus\{a,b\}$ and $H=2^{|R|}$. Use the map from (R2.1) with the eight labels $0\le i<8$. Suppose the images of $(i,S)$ and $(j,T)$ coincide, with $i\ge j$. Set
+
+$$
+ p=\left\lfloor\frac{i-|S|}{2}\right\rfloor-
+   \left\lfloor\frac{j-|T|}{2}\right\rfloor,\qquad q=i-j-p .
+$$
+
+Equality in the parity coordinate gives $|T|-|S|=p-q$. Equality in the cyclic coordinate gives $F_a(T)-F_a(S)=pd$. If $p<2$ or $q<2$, the Round 1 pivot interval gives $T=S$. Then $0\le p=q\le1$ and $pd=0$, so the labels agree. Otherwise $p,q\ge2$ and $p+q\le7$.
+
+Write $D=S\setminus T$ and $C=T\setminus S$. The rule $(p,q,D,C)$ has disjoint sides and satisfies
+
+$$
+ |C|+q=|D|+p,\qquad \sum C-\sum D=pb-qa.
+$$
+
+Its possible source subsets contain $D$ and avoid $C$. There are $H/2^{|D|+|C|}$ such sources. Deleting the labels from $p+q$ through $7$ on these sources suffices for this rule. Every remaining label has a distinct image in two copies of the cyclic group. Thus
+
+$$
+ 8H\ \le\ 2N+\sum_{u} (8-p_u-q_u)\frac{H}{2^{|D_u|+|C_u|}} . \tag{R3.2}
+$$
+
+The sum runs over all admissible rules, including rules with an empty side. This last detail matters when the two exchanged subsets have different sizes.
+
+**Joint crossing.** Distinct rules $u,v$ satisfy $D_u\cap C_v\ne\varnothing$ whenever $p_u\le p_v+1$ and $q_v\le q_u+1$. Indeed, subtract their equations using the coefficient vector
+
+$$
+ 1_{C_u}-1_{D_u}+1_{D_v}-1_{C_v}
+ +(q_u-q_v)1_a+(p_v-p_u)1_b.
+$$
+
+A missing intersection would make every coefficient at least $-1$. The coefficients sum to zero and their weighted sum vanishes. Validity forces the vector to vanish. Its pivot entries first identify the two signatures. Its other entries then identify both disjoint sides, contradicting distinctness.
+
+In any $2\times2$ square of signatures this crossing holds in both directions. In a uniformly ordered ground set, the events that all of $D_u$ precedes all of $C_u$ are therefore disjoint. Each has probability $1/\binom{h}{|D_u|}$ for $h=|D_u|+|C_u|$, including probability one when either side is empty. This permutation argument gives the weighted Bollobás set-pair inequality. The Lean proof counts finite permutations and source subsets with natural-number arithmetic. [Set-pair counting proof](FonollosaMinModulus/SetPairCounting.lean)
+
+**The three squares.** Take $4d\ne0$. An order-three difference already gives $N\ge3H$, so assume $3d\ne0$. In the following table, each entry lists a signature and its weight $8-p-q$.
+
+| Square | Signatures and weights | Maximum total charge |
+|---|---|---:|
+| Central | $(2,2):4$, $(3,2):3$, $(2,3):3$, $(3,3):2$ | $3H/2$ |
+| First outer | $(4,2):2$, $(4,3):1$, $(5,2):1$ | $H/2$ |
+| Second outer | $(2,4):2$, $(3,4):1$, $(2,5):1$ | $H/2$ |
+
+For either outer square, a weight-two rule has side sizes differing by two, so $\binom h{|D|}/2^h\le1/4$. A weight-one rule has nonempty union and ratio at most $1/2$. Multiplication by the separating-event probabilities and summation give the two outer bounds. Pascal's recurrence proves the binomial estimates in Lean. For the gap-two estimate it suffices to check $h\le9$ directly and propagate the uniform row bound from $h=9$.
+
+If the central square has no $(2,2)$ singleton exchange, its weight-four rules have $h\ge4$ and ratio at most $3/8$. The other rules have $h\ge1$ and weight at most three. If a singleton $x\mapsto y$ exists, it costs $H$. Every other central rule removes $y$ and inserts $x$. Delete those two forced coordinates from its separating event. The resulting pairs still cross in both directions. For residual size $h'>0$ their binomial ratio is at most $1/2$. Their original cylinders have an extra factor $1/4$ and their weights are at most four, so their total costs at most $H/2$. If $h'=0$, the ranks require $p=q$. The weight-four reverse exchange would give $4d=0$. The remaining weight is at most two and obeys the same estimate. This proves the central bound in both cases. Iterating a singleton argument only applies at levels where a singleton exists.
+
+Substitution in (R3.2) gives $8H\le2N+5H/2$. A suitable pivot pair always exists. In a cyclic group the nonzero elements killed by two all have the same representative $N/2$. Choose distinct $a,b,c$ and put $x=b-a$, $y=c-a$. If $4x=4y=0$, then either both doubles vanish, exactly one vanishes, or the two nonzero doubles coincide. The first forces $x=y$. The second gives $x=2y$ or $y=2x$. In the last case $x-y$ and $2x$ are the same nonzero involution, giving $x+y=0$. Each of the latter possibilities gives a forbidden midpoint. Consequently a pair with $4d\ne0$ exists as soon as $n\ge3$.
+
+For the stronger conditional result take $c=3b-2a\in R$. There is a rule $(3,2,\varnothing,\{c\})$. Its empty removal side and directed crossing force every rule with $q\le3$ to be this very rule. Its charge is $3H/2$. The square with $q\ge4$ contributes at most $H/2$, giving $8H\le2N+2H$. In particular a sub-768 ten-set cannot have a unit normalization with third coordinate three. The coefficient $3/4$ is a ceiling for a single constant valid at every $n\ge3$. The triple $\{0,1,3\}$ at $N=6$ attains it. Its ten three-term multisets have integer sums $0,1,2,3,3,4,5,6,7,9$, with just one congruent to four.
+
+**Other label counts.** In the relaxation with no $(2,2)$ singleton and pivot order larger than the diagonal signatures, give each signature its total separating-event probability. Each unit square has total probability at most one. The sharp values of this *relaxation* for consecutive labels are shown below. The script reconstructs primal and dual witnesses from an LP solution and checks every inequality and equality over exact rational numbers. For unequal sides with size gap $g>0$, its binomial maximum occurs by row $g^2$, as the ratio of consecutive same-parity terms is $(h+2)(h+1)/((h+2)^2-g^2)$. [Exact certificate checker](scripts/round3_slots.py)
+
+| Labels | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---:|---:|---:|---:|---:|---:|
+| Allowed charge divided by $H$ | $3/8$ | $3/4$ | $13/8$ | $5/2$ | $16873/4096$ | $11753/2048$ |
+| Resulting coefficient of $2^n$ | $37/64$ | $21/32$ | $43/64$ | $11/16$ | $19991/32768$ | $8727/16384$ |
+
+Replacing the parity coordinate by $(i-u|S|)\bmod k$ changes the label distance to $(k-u)p+uq$. The same rational test gives $21853/32768$, $43031/65536$ and $27/40$ for $(k,u,L)=(3,1,11),(4,1,14),(5,2,18)$ respectively. These optimizations bound the stated signature model. They leave room for extra relations between squares or different maps. In particular, one-way crossing alone does not give the two-way permutation inequality for unequal sides. The ordered pairs $(\{x\},\varnothing),(\varnothing,\{x\})$ have the requisite forward intersection, yet their two event probabilities sum to two.
+
+**Why eight is optimal in this relaxation.** There is an exact obstruction valid for every layer count $k$, slope $0\le u\le k$ and label length $L$. Put $\lambda=L/k$ and $\theta=u/k$. Give event mass one to each of the four signatures $(2,2),(2,4),(4,2),(4,4)$. Every unit square contains at most one of them. Their admissible binomial ratios in the relaxation are $3/8,1/4,1/4,1/2$. Each weighted positive part has threshold $(1-\theta)p+\theta q$. The two off-diagonal thresholds average to three, so convexity gives the following lower bound on the relaxed maximum loss divided by $kH$,
+
+$$
+ \tfrac38(\lambda-2)_+ + \tfrac12(\lambda-3)_+
+                   +\tfrac12(\lambda-4)_+ .
+$$
+
+Subtracting this expression from $\lambda$ gives at most $\lambda/8+9/4\le11/4$ for $\lambda\le4$, and at most $17/4-3\lambda/8\le11/4$ for $\lambda\ge4$. Division by four caps the provable coefficient at **$11/16$**. The four masses give a feasible witness for the relaxation. Simultaneous realization by a cyclic set imposes additional conditions. The eight-label proof attains the ceiling of this entire class of signature-square estimates. Any improvement must use an additional restriction on simultaneous exchanges or another packing map.
+
+### A finite refinement for ten points
+
+Round 2 gives a unit difference throughout the remaining ten-point interval. Normalize that pair to $a=0,b=1$ and retain the eight other coordinates. For each signature and pair of side sizes $d,c$ there are $2^{8-d-c}$ source subsets per rule. In each signature square the permutation budget is **840**. A rule consumes $840/\binom{d+c}{d}$ units. This common denominator covers all rows up to eight. The following restrictions make the integer optimization stronger than the continuous square estimates.
+
+- A rule with an empty side forbids every other rule with which directed crossing would require a point in that side. The checker enumerates exactly which signatures have such a rule. In its own signature the rule is unique.
+- When one side is a singleton and the other has size $k$, the singleton centres are distinct and each opposite side contains every other centre. At $k+1$ centres every opposite side consists exactly of the other centres. Consequently all centre doubles agree. A cyclic group has at most two preimages under doubling, which rules this out for $k\ge2$. For $k=1$, two rules would be reverses, forcing twice the displacement to vanish.
+- For $d=c=2$, enumerate five distinct removal edges on eight labelled points. An insertion edge must avoid its own removal edge and meet all four others. The test finds 420 labelled assignments with a reverse exchange and 672 further assignments with equal total coordinate multiplicities on the two sides. These would force $2g=0$ and $5g=0$ respectively for the common displacement $g$. Here $g=p$ before conditioning and $g=p+2$ after stripping the forced coordinates of a central singleton. Since $p\in\{2,3\}$, the modulus is too large for either equality. For fewer than eight coordinates, embedding in the same eight-point ground set preserves the test.
+- Four such rules are impossible below 1016 as well. Relabel the first rule to $\{0,1\}\mapsto\{2,3\}$ on the eight coordinate **indices**. Generate the other three ordered pairs of disjoint edges with both crossings, distinct sides and no reversals. Sorting the columns of the incidence matrix gives 37 types. Permuting the four rows gives eight types. One yields a nonzero balanced signed relation with every entry at least $-1$. Three yield a small nonzero multiple of the unit equal to zero. Each of the other four uses five coordinates. Translate one coordinate to zero and multiply the resulting four linear equations by the adjugate. In two types a determinant of absolute value two forces two distinct coordinates into the same doubling fibre. In the other two a determinant of absolute value four puts three into one quadrupling fibre. Each possibility gives an antipodal pair in the cyclic group. The Round 1 antipodal exclusion therefore gives a cap of three rules. The checker verifies each signed relation, integer dependency, determinant and repeated entry exactly.
+
+The program enumerates the one-sided signatures and runs an integer knapsack independently on each square. With a distinguished central singleton it charges 256 for that rule and uses six free coordinates in the residual permutation test. The maximum admitted loss is 608 without the singleton and 624 with it. Hence $2N\ge2048-624$ and **$N\ge712$**. The knapsack deliberately permits combinations that need not be jointly realizable. Every actual profile satisfies its constraints. [Exact enumeration and knapsack](scripts/round3_profiles.py)
+
+A further computation in the same checker excludes the residual $(2,2)$ singleton and gives maximum loss 604 in the distinguished case. With no distinguished singleton, loss greater than 604 requires the two one-sided signatures $\{(3,4),(4,2)\}$, their reflections $\{(2,4),(4,3)\}$, or $\{(2,4),(4,2)\}$. These facts give a short list of necessary prefixes. Through 719 the loss exceeds 608, so there must be disjoint pairs $x,x+2$ and $u,u+4$ off the pivots. At 720 and 721 a valid set must contain the same chain unless both outer one-sided rules occur. In the first configuration their intersection forces the points $-3,7$. Reflection in $1/2$, meaning $t\mapsto1-t$ in any modulus, covers the second. In the third configuration the removal and insertion pairs intersect and have sums $-2$ and $4$. They give three distinct points $x,4-x,-2-x$. These reductions use the directed crossing criterion and work for composite moduli.
+
+At 722 and 723, the required losses are 604 and 602. If there is no chain and none of $(4,2),(2,4),(4,3),(3,4)$ is one-sided, the maximum admitted loss is 600. Up to reflection, these one-sided rules give either a point $4$ or a pair $x,4-x$. In the former case the global minimum third coordinate must be four, since the three-quarters theorem already excludes three. In the latter case fix the four-point prefix $0,1,x,4-x$. Two of the six unknown coordinates share one of five colors, giving a six-point prefix for the target-sum test. These are unrestricted exclusions at each modulus once the listed cases have been exhausted.
+
+The primary program exhausted the fixed configurations at all twelve moduli $712,\ldots,723$, visiting 28,613,281 six-point prefixes and 46,293,689 target graphs. The independent implementation visited 27,922,400 six-point prefixes and checked 766 candidate ten-sets. Both returned zero. At 722 and 723 the additional full $z=4$ searches visited 7,619,629 primary and 7,775,182 independent six-point prefixes, also with zero valid leaves. Thus the **continuous unrestricted ten-point floor is $N\ge724$**. The formal general theorem gives 704 directly. The extra twenty moduli use the finite profile proof and the two C++ checks.
+
+### The target-sum census at 1015
+
+All ten-point candidates below 1016 that survived Round 2 have a unit difference. At 1015 the independent nonunit check used the CRT axes of orders $5,7,29$. A unit pair can be sent to $0,1$. Among all such normalizations choose the smallest possible third coordinate $z$. Then $A$ contains $0,1,z$, every other representative is larger than $z$, and normalizing any ordered unit pair in any triple of $A$ gives a third coordinate at least $z$. A midpoint excludes $z=2$. Round 2 exhausted $z\ge27$. The new search takes all the remaining values $3\le z\le26$.
+
+For a prefix $P$ write $R_j(P)$ for the residues attainable by exactly $j$ entries, with repetition, and $H_j(P)$ for their complement. Inserting $x$ updates the rows by $R_j(P+x)=R_j(P)\cup(x+R_{j-1}(P+x))$. Heredity permits rejecting any prefix with a rival to its own all-ones sum. For a proper prefix, any candidate final sum $\sigma$ must belong to $H_{10}(P)$, since a representation supported entirely on $P$ omits a final point.
+
+- **Four-clique search.** The primary solver reuses the Round 2 reachability code through a shared header. At six points, fix $\sigma$ and retain a vertex $x$ only if $\sigma-hx\notin R_{10-h}(P)$ for $1\le h\le10$. An edge $x,y$ requires $\sigma-hx-jy\notin R_{10-h-j}(P)$ for every $h,j\ge1$ with $h+j\le10$. A valid completion gives a four-clique of total weight $\sigma-\sum P$. Hashing pairs strictly to the left of the third vertex visits each sorted quadruple with that sum. For prefixes with more than 48 available sums, the solver fixes the first tail vertex, updates the exact rows and performs the corresponding triangle test. Every surviving clique goes through the insertion test and a scalar count from the frozen definition. [Primary C++ solver](scripts/round3_clique.cpp)
+- **Independent check.** The second implementation generates forbidden normalized triples by taking affine images of $\{0,1,t\}$ for $2\le t<z$. It builds reachability rows with circular 64-bit reads. It enumerates increasing tail coordinates by nested loops, determines the last coordinate by subtraction, and checks each resulting ten-set by exact insertion. It uses no clique edges. It branches to a seven-point prefix above 30 available sums. A second entry point traverses the high-$z$ interval with sorted lists and a shared table of affine minima. [Independent C++ verifier](scripts/round3_verify.cpp)
+- **Three-color reduction.** Color the seven unchosen residues. At least one color occurs three times. Choose its first three representatives in increasing order as the next coordinates of the prefix. The four remaining points may include *smaller* representatives of the other colors. The implementation retains them. For these shards the fourth coordinate runs all the way to $N-3$. The solvers use different colorings. Sorted shards instead run to $N-7$. The faster primary mode also propagates hereditary validity to all future candidates. A shard reports completion only after joining all workers.
+- **Positive controls.** From $0,1,3,7,15,31$ at 1016 both solvers recover $0,1,3,7,15,31,63,127,255,511$. The color-cover search also finds it from the single chosen fourth coordinate 127 in the primary implementation and 31 in the independent one. In the first control the remaining four coordinates all precede at least one of the three chosen color representatives. This checks the ordering issue directly.
+
+The primary 1015 run completed **23,884** fourth-coordinate jobs for $3\le z\le26$, reached **562,690,729** six-point prefixes and tested **680,066,873** target graphs with enough vertices. Zero sum-compatible cliques survived the full graph and normalization checks. Prefix and graph counts refer to visits in their respective decompositions. Together with the earlier high-third-coordinate and nonunit results this excludes every ten-set at 1015.
+
+The independent run for $3\le z\le26$ reached **147,554,700** six-point prefixes and tested **3,160** complete tuples. Its separate traversal of *all* 981 higher third coordinates, $27\le z\le1007$, reached 150,420,183 six-point prefixes and tested 51 complete tuples. Every validity count was zero. Repeating the independent CRT-axis enumeration gave zero ten-point candidates at 1015 with no unit pair. Thus the independent coverage includes both the large-third-coordinate interval and the nonunit case.
+
+### Neighboring moduli
+
+At the prime 1013 every difference of distinct residues is a unit. The primary solver exhausted $3\le z\le23$ in 20,937 fourth-coordinate jobs, reaching 107,589,956 six-point prefixes and 1,087,761 target graphs with zero surviving cliques. For the same low range the independent verifier visited 107,766,244 six-point prefixes and tested 1,410 complete candidates, all of which failed. Its separate high-third-coordinate traversal exhausted $24\le z\le1005$, visiting 29,523,167 six-point prefixes with zero candidate ten-sets. Together with the Round 2 high-range census, this gives two complete checks at 1013.
+
+At $1014=2\cdot3\cdot13^2$, there is a short additional reduction for the independent no-unit check. A valid ten-set generates the group after translation, since a proper subgroup has order at most 507 and the ten-point theorem requires 704. Opposite-parity differences generate every difference. For two points of the same parity, subtract their differences to a common point of the other parity. If every difference is a nonunit, each opposite-parity difference has odd gcd greater than one with 1014. At least one such gcd is three, since every larger odd divisor is divisible by 13. A unit scaling and a translation give the pair $0,3$. At least two points lie outside $3\mathbb Z$, whose order 338 is below the nine-point bound 352. Fix its first two outside points and then a same-color pair among the six remaining points in five colors. The independent completion algorithm exhausted 52 normalized third-coordinate roots, visited 1,606,144 six-point prefixes, and tested 2,319 complete tuples. All failed validity.
+
+For the unit normalization at 1014, the primary solver covered $3\le z\le44$ in 41,475 fourth-coordinate jobs, with 301,221,521 six-point prefixes, 17,918,233 target graphs and zero surviving cliques. Its additional run at $45\le z\le49$ covered 4,820 jobs and 17,907,559 prefixes, again with zero cliques. The independent $z=3$ check visited 14,314,829 six-point prefixes and tested 11,279 complete tuples. All failed. The separate upper traversal covered all 962 values $45\le z\le1006$, with 586,692,698 six-point prefixes and 17,705 complete tuples, all invalid. Together with the no-unit check these ranges exhaust 1014. Independent traversals overlap at $z=3$, at $45\le z\le49$, and on the Round 2 interval $z\ge192$.
+
+### Reproduction and axiom audit
+
+Lean 4.36.0 built the root module and all three fresh kernel replays exited successfully. The following commands reproduce those checks from the project root. Running fresh checks one module at a time also avoids the multi-module loader issue recorded in Round 2.
+
+```sh
+lake build
+lake env lean scripts/check_axioms.lean
+lake env leanchecker --fresh --verbose FonollosaMinModulus.Challenge
+lake env leanchecker --fresh --verbose FonollosaMinModulus.SetPairCounting
+lake env leanchecker --fresh --verbose FonollosaMinModulus.ResearchLemmas
+shasum -a 256 FonollosaMinModulus/Challenge.lean
+```
+
+The axiom inventory covers 41 public proof declarations. Exactly five depend on `propext` and `Quot.sound` alone. They are `BinaryCoins.complement_gap`, `SetPairs.binom_half`, `SetPairs.binom_three_eighths`, `SetPairs.binom_quarter_gap_two`, and `RankSlots.four_signature_relaxation_ceiling`. The other 36, including the unconditional and conditional density theorems, depend on exactly `propext`, `Classical.choice`, and `Quot.sound`. The per-declaration audit names all 41. The source scan found zero uses of `sorry`, `admit`, or `native_decide` in the local Lean modules. Lake emits its legacy-import notices for the existing modules. [Axiom inventory](scripts/check_axioms.lean)
+
+Use an ordinary Python interpreter with SciPy and SymPy. The two C++17 binaries have separate implementations of the affine and reachability calculations. A primary shard records every fourth-coordinate job. The audit checks the exact integer interval, rejects duplicate or missing jobs, matches component sums to the final counters, and hashes the sorted branch results. The stored digests are independent of worker scheduling. [Coverage checks](scripts/round3_census.py) · [Machine results](scripts/round3_results.txt)
+
+```sh
+py=/Users/mw/miniconda3/bin/python3
+outdir=/tmp/fonollosa-round3
+mkdir -p "$outdir"
+clang++ -std=c++17 -O3 -march=native -pthread scripts/round3_clique.cpp -o "$outdir/clique"
+clang++ -std=c++17 -O3 -march=native -pthread scripts/round3_verify.cpp -o "$outdir/verify"
+"$py" -B scripts/round3_profiles.py
+"$py" -B scripts/round3_slots.py
+
+"$py" -B scripts/round3_census.py run primary "$outdir/clique" 7 "$outdir" 1015 3 26
+"$py" -B scripts/round3_census.py run independent "$outdir/verify" 6 "$outdir" 1015 3 26
+"$py" -B scripts/round3_census.py audit --independent "$outdir" 1015 3 26
+"$outdir/verify" upper 1015 27 1007 4 > "$outdir/upper-1015.log"
+"$py" -B scripts/round3_census.py upper "$outdir/upper-1015.log" 1015 27 1007
+"$py" -B scripts/round2_verify.py nonunits > "$outdir/crt.log"
+
+"$py" -B scripts/round3_census.py run primary "$outdir/clique" 7 "$outdir" 1013 3 23
+"$py" -B scripts/round3_census.py run independent "$outdir/verify" 5 "$outdir" 1013 3 23
+"$py" -B scripts/round3_census.py audit --independent "$outdir" 1013 3 23
+"$outdir/verify" upper 1013 24 1005 4 > "$outdir/upper-1013.log"
+"$py" -B scripts/round3_census.py upper "$outdir/upper-1013.log" 1013 24 1005
+
+"$py" -B scripts/round3_census.py run primary "$outdir/clique" 7 "$outdir" 1014 3 49
+"$py" -B scripts/round3_census.py audit "$outdir" 1014 3 44
+"$py" -B scripts/round3_census.py run independent "$outdir/verify" 3 "$outdir" 1014 3 3
+"$py" -B scripts/round3_census.py audit --independent "$outdir" 1014 3 3
+"$outdir/verify" upper 1014 45 1006 4 > "$outdir/upper-1014.log"
+"$py" -B scripts/round3_census.py upper "$outdir/upper-1014.log" 1014 45 1006
+"$outdir/verify" nonunit 1014 4 > "$outdir/nonunit-1014.log"
+
+for n in {712..717}; do "$outdir/clique" profile "$n" 4 > "$outdir/profile-$n.log"; done
+for n in {718..723}; do "$outdir/clique" profile-fast "$n" 4 > "$outdir/profile-$n.log"; done
+for n in {712..723}; do "$outdir/verify" profile "$n" 4 > "$outdir/ind-profile-$n.log"; done
+for n in 722 723; do
+  "$py" -B scripts/round3_census.py run primary "$outdir/clique" 4 "$outdir" "$n" 4 4
+  "$py" -B scripts/round3_census.py run independent "$outdir/verify" 4 "$outdir" "$n" 4 4
+  "$py" -B scripts/round3_census.py audit --independent "$outdir" "$n" 4 4
+done
+"$py" -B scripts/round3_census.py report "$outdir" > "$outdir/results.txt"
+cmp "$outdir/results.txt" scripts/round3_results.txt
+
+"$outdir/clique" 1016 3 7 7 1 15,31
+"$outdir/verify" 1016 3 7 7 1 15 31
+"$outdir/clique" 1016 3 127 127 1 cover-fast
+"$outdir/verify" 1016 3 31 31 1 cover
+```
+
+The original report prefix is 52,094 bytes with SHA-256 `ca9dbcbb30af6cb78b0d5afd54fee7177fcb282995900ac3d29cac410744341e`. Its hash can be reproduced with `head -c 52094 RESEARCH_ANALYSIS.md | shasum -a 256`. The frozen target has SHA-256 `3a275f872e63da865d3636a81abd5d9065e75716389f450564d42515666d1d91`.
+
+### Standalone contributions, ranked
+
+1. **The unconditional $11/16$ cyclic bound.** Directed crossing for unequal exchanges permits a joint estimate over signatures. The four-signature witness identifies exactly what the local permutation argument loses. The $3/4$ theorem for an affine $\{0,1,3\}$ exhibits the gain from a single one-sided exchange.
+2. **The ten-point boundary census and continuous lower bound.** Exact target-sum searches, an independent completion algorithm and checked normalization ranges turn numerical searches into reproducible exclusions. The eight-coordinate exchange classification explains why only a few fixed configurations can approach equality in the finite bound.
+3. **Binary-core rigidity for every $n\ge6$.** With one unknown coordinate, the full conjectured lower bound and the forced residue follow from the binary-coin argument. Allowing two unknown coordinates and nonunit steps gives the finite extension exclusions through $n=25$ recorded in Round 1.
+4. **Antipodal and nonunit reductions for ten points.** The nine-point quotient, parity lifting and CRT axes exclude these obstructions across the subthreshold search. Together they justify the single unit-pair normalization used in the endpoint census.
+
+The remaining mathematical question is which signature families can coexist *across* the three squares and across different choices of pivot pair. The four-signature relaxation witness gives a concrete target. Realizing its weight requires many $2$-by-$2$ exchanges in the central square and efficient off-centre exchanges on both sides. The finite ten-point argument already rules out four such central exchanges. A dimension-independent stability theorem for these simultaneous requirements would address the gap left by (R3.1).
