@@ -5,6 +5,8 @@ import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
 import Mathlib.Analysis.Real.Sqrt
+import Mathlib.Algebra.Ring.Int.Parity
+import Mathlib.Data.Nat.Prime.Basic
 
 /-! Auxiliary bounds for the FEI experiments. -/
 
@@ -148,5 +150,115 @@ theorem perfect_matching_score {h i hg ig hb ib t d R : ℝ}
   have hcopy := mul_nonneg (sub_nonneg.mpr hR)
     (mul_nonneg hd (sub_nonneg.mpr ht))
   linarith
+
+/-- Removing the singleton level from total influence retains exactly the
+incidences at which branching loss is measured. -/
+theorem branching_mass_eq {n : ℕ} (f : (Fin n → Bool) → Bool) :
+    totalInfluence f - (∑ S, if S.card = 1 then (fourierCoeff f S) ^ 2 else 0) =
+      ∑ S, if 2 ≤ S.card then (S.card : ℝ) * (fourierCoeff f S) ^ 2 else 0 := by
+  rw [totalInfluence_eq_spectralInfluence, spectralInfluence, ← Finset.sum_sub_distrib]
+  apply Finset.sum_congr rfl
+  intro S _
+  by_cases h₀ : S.card = 0
+  · simp [h₀]
+  by_cases h₁ : S.card = 1
+  · simp [h₁]
+  have h₂ : 2 ≤ S.card := by omega
+  simp [h₁, h₂]
+
+/-- For a ternary derivative with positive, negative and zero masses p, m, z,
+the expected absolute independent-copy difference is at most twice its variance. -/
+theorem ternary_copy_gap_le_two_variance {p m z : ℝ} (hp : 0 ≤ p) (hm : 0 ≤ m)
+    (h : p + m + z = 1) :
+    2 * (p + m) * z + 4 * p * m ≤ 2 * (p + m - (p - m) ^ 2) := by
+  have hz : z = 1 - (p + m) := by linarith
+  rw [hz]
+  nlinarith [mul_nonneg hp hm]
+
+/-- The primitive positive row ratio of a nondegenerate independent Walsh bit
+must be 1:1 once integer Parseval supplies this dyadic divisor. -/
+theorem dyadic_sum_of_two_squares {a b k : ℕ} (ha : 0 < a) (hb : 0 < b)
+    (hc : a.Coprime b) (hd : a ^ 2 + b ^ 2 ∣ 2 ^ k) : a = 1 ∧ b = 1 := by
+  obtain ⟨j, _, hj⟩ := (Nat.dvd_prime_pow Nat.prime_two).mp hd
+  have hsmall : a ^ 2 + b ^ 2 ≤ 2 := by
+    cases j with
+    | zero => omega
+    | succ j =>
+      cases j with
+      | zero => omega
+      | succ j =>
+        have hfour : 4 ∣ a ^ 2 + b ^ 2 := ⟨2 ^ j, by rw [hj, pow_succ, pow_succ]; ring⟩
+        have hs (x : ℕ) : x ^ 2 % 4 = x % 2 := by
+          exact_mod_cast Int.sq_emod_four (x : ℤ)
+        have hmod := Nat.mod_eq_zero_of_dvd hfour
+        rw [Nat.add_mod, hs, hs] at hmod
+        have hdiv : 2 ∣ a.gcd b := Nat.dvd_gcd (by omega) (by omega)
+        rw [hc.gcd_eq_one] at hdiv
+        omega
+  have h₁ : a ≤ a ^ 2 := by simpa [sq] using Nat.mul_le_mul_left a ha
+  have h₂ : b ≤ b ^ 2 := by simpa [sq] using Nat.mul_le_mul_left b hb
+  omega
+
+/-- Completing the square in the routing calculation absorbs the inherited
+loss into the influence added by the address. -/
+theorem routed_excess_le {b v u e : ℝ} (hv : 0 ≤ v) (hu : 0 ≤ u) (hcharge : u * v ≤ e) :
+    u * v * (14 * b - b ^ 2) + 25 * e ≤ 74 * e := by
+  have h := mul_nonneg (mul_nonneg hu hv) (sq_nonneg (b - 7))
+  nlinarith
+
+/-- A quantized real slice pays its step size times every signed mean in
+second moment. Normalized counting measure and Walsh signs give the affine
+flat estimate once the partial Walsh coefficients lie on the indicated grid. -/
+theorem signed_slice_mass {ι : Type*} (s : Finset ι) (w h σ : ι → ℝ) {δ : ℝ}
+    (hδ : 0 ≤ δ) (hw : ∀ i ∈ s, 0 ≤ w i) (hσ : ∀ i ∈ s, |σ i| ≤ 1)
+    (hgrid : ∀ i ∈ s, δ * |h i| ≤ (h i) ^ 2) :
+    δ * |∑ i ∈ s, w i * h i * σ i| ≤ ∑ i ∈ s, w i * (h i) ^ 2 := by
+  calc
+    _ ≤ δ * ∑ i ∈ s, |w i * h i * σ i| :=
+      mul_le_mul_of_nonneg_left (Finset.abs_sum_le_sum_abs _ _) hδ
+    _ = ∑ i ∈ s, δ * |w i * h i * σ i| := Finset.mul_sum ..
+    _ ≤ _ := by
+      apply Finset.sum_le_sum
+      intro i hi
+      rw [abs_mul, abs_mul, abs_of_nonneg (hw i hi)]
+      calc
+        δ * (w i * |h i| * |σ i|) ≤ δ * (w i * |h i| * 1) :=
+          mul_le_mul_of_nonneg_left
+            (mul_le_mul_of_nonneg_left (hσ i hi) (mul_nonneg (hw i hi) (abs_nonneg _))) hδ
+        _ = w i * (δ * |h i|) := by ring
+        _ ≤ _ := mul_le_mul_of_nonneg_left (hgrid i hi) (hw i hi)
+
+/-- If the inverse Walsh values are odd integers, Parseval with unit mean
+square forces each physical value to be a Boolean sign. -/
+theorem sign_of_odd_unit_energy {ι : Type*} [Fintype ι] (v : ι → ℤ)
+    (ho : ∀ i, Odd (v i)) (he : ∑ i, (v i) ^ 2 = (Fintype.card ι : ℤ)) :
+    ∀ i, v i = 1 ∨ v i = -1 := by
+  have hmin (i : ι) : 1 ≤ (v i) ^ 2 := by
+    obtain ⟨k, hk⟩ := ho i
+    have hn : v i ≠ 0 := by omega
+    have hp := sq_pos_of_ne_zero hn
+    omega
+  have hz : (∑ i, ((v i) ^ 2 - 1)) = 0 := by
+    rw [Finset.sum_sub_distrib, he]
+    simp
+  intro i
+  have hh := (Finset.sum_eq_zero_iff_of_nonneg
+    (fun j _ ↦ sub_nonneg.mpr (hmin j))).1 hz i (Finset.mem_univ i)
+  have hprod : (v i - 1) * (v i + 1) = 0 := by nlinarith
+  rcases mul_eq_zero.mp hprod with h | h <;> omega
+
+/-- Copying both ends of a deletion edge with a common amplitude multiplier
+scales its loss contribution by the square of that multiplier. -/
+theorem scaled_deletion_loss (c a b : ℝ) :
+    (c * a) ^ 2 * Real.logb 2 (1 + (c * b) ^ 2 / (c * a) ^ 2) =
+      c ^ 2 * (a ^ 2 * Real.logb 2 (1 + b ^ 2 / a ^ 2)) := by
+  by_cases hc : c = 0
+  · simp [hc]
+  by_cases ha : a = 0
+  · simp [ha]
+  have hr : (c * b) ^ 2 / (c * a) ^ 2 = b ^ 2 / a ^ 2 := by
+    field_simp
+  rw [hr, mul_pow]
+  ring
 
 end FEI
