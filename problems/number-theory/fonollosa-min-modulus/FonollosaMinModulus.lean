@@ -1,1 +1,2 @@
 import FonollosaMinModulus.Challenge
+import FonollosaMinModulus.ResearchLemmas
