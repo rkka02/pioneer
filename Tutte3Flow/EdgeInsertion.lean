@@ -34,7 +34,8 @@ private theorem divergence_as_sum (f : E → ZMod 3) (v : V) :
       (∑ e, if G.dst e = v then f e else 0) := by
   simp only [mod3Divergence, sum_filter]
 
-private theorem divergence_adjoin (x y v : V) (f : Option E → ZMod 3) :
+/-- The divergence after adjoining one labelled edge separates into the two contributions. -/
+public theorem divergence_adjoin (x y v : V) (f : Option E → ZMod 3) :
     (G.adjoinReferenceEdge x y).mod3Divergence f v =
       G.mod3Divergence (fun e => f (some e)) v +
         ((if x = v then f none else 0) - (if y = v then f none else 0)) := by
