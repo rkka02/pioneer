@@ -266,7 +266,7 @@ theorem scaled_deletion_loss (c a b : ℝ) :
   ring
 
 /-- Squared distance to the grid of integer multiples of a positive step. -/
-noncomputable def gridError (h x : ℝ) : ℝ := (x - h * (round (x / h) : ℤ)) ^ 2
+@[expose] noncomputable def gridError (h x : ℝ) : ℝ := (x - h * (round (x / h) : ℤ)) ^ 2
 
 theorem gridError_le_candidate {h : ℝ} (hh : 0 < h) (x : ℝ) (z : ℤ) :
     gridError h x ≤ (x - h * z) ^ 2 := by
@@ -349,7 +349,7 @@ theorem cube_defect_absorption {d ρ boundary excess : ℝ}
     mul_nonneg hd (sub_nonneg.mpr hoverlap)]
 
 /-- Squared error in rounding one Walsh coefficient to the grid of step 2⁻ᵐ. -/
-noncomputable def gridLayer (m : ℕ) (x : ℝ) : ℝ :=
+@[expose] noncomputable def gridLayer (m : ℕ) (x : ℝ) : ℝ :=
   gridError 1 ((2 : ℝ)^m * x) / ((2 : ℝ)^m)^2
 
 theorem gridLayer_eq (m : ℕ) (x : ℝ) :
@@ -359,7 +359,7 @@ theorem gridLayer_eq (m : ℕ) (x : ℝ) :
   field_simp
 
 /-- At dimension n all further grid errors vanish for Boolean Walsh coefficients. -/
-noncomputable def gridSum (n : ℕ) (x : ℝ) : ℝ :=
+@[expose] noncomputable def gridSum (n : ℕ) (x : ℝ) : ℝ :=
   ∑ m ∈ Finset.range n, gridLayer m x
 
 private theorem unit_grid_reflect (z : ℤ) (x : ℝ) :
@@ -537,7 +537,7 @@ private theorem amplitudeEntropy_le_missing_mass {x : ℝ} (h : 0 ≤ x) (h' : x
   nlinarith
 
 /-- Sum over the squared rounding errors on all dyadic grids of step at most one. -/
-noncomputable def fourierGridEnergy {n : ℕ} (f : (Fin n → Bool) → Bool) : ℝ :=
+@[expose] noncomputable def fourierGridEnergy {n : ℕ} (f : (Fin n → Bool) → Bool) : ℝ :=
   ∑ S, gridSum n |fourierCoeff f S|
 
 /-- The dyadic grid energy approximates half the frozen entropy from below. -/
@@ -654,5 +654,33 @@ theorem rank_two_entropy_scalar {μ δ w : ℝ} (hm : 0 ≤ μ) (hm' : μ ≤ 1/
   have h := binary_mixture_small_root hd ht ht' hw' (by rw [hdet]; ring)
   apply binary_entropy_four_mass (mul_nonneg hm hd) (by nlinarith [mul_nonneg hm (sub_nonneg.mpr hd')]) hw
   nlinarith [mul_nonneg (sq_nonneg μ) hd]
+
+/-- A two-party sign which is a signed dictator after either party is fixed. -/
+@[expose] def twoPartySelector (x y : Bool × Bool) : Bool :=
+  (if y.1 == y.2 then x.1 else x.2) ^^ y.1
+
+/-- The four bilinear Walsh coefficients of the selector are one half in magnitude. -/
+theorem twoPartySelector_expansion (x y : Bool × Bool) :
+    pm (twoPartySelector x y) =
+      (pm x.1 * (pm y.1 + pm y.2) + pm x.2 * (pm y.1 - pm y.2))/2 := by
+  obtain ⟨a,b⟩ := x
+  obtain ⟨c,d⟩ := y
+  cases a <;> cases b <;> cases c <;> cases d <;> norm_num [twoPartySelector, pm]
+
+/-- The constant row direction is orthogonal to every selector row. -/
+theorem twoPartySelector_row_sum (x : Bool × Bool) : ∑ y, pm (twoPartySelector x y) = 0 := by
+  rw [Fintype.sum_prod_type]
+  simp only [Fintype.sum_bool, twoPartySelector_expansion]
+  simp only [show pm true = -1 by rfl, show pm false = 1 by rfl]
+  ring
+
+/-- The normalized row Gram kernel has two equal character components. -/
+theorem twoPartySelector_gram (x z : Bool × Bool) :
+    (∑ y, pm (twoPartySelector x y) * pm (twoPartySelector z y))/4 =
+      (pm x.1 * pm z.1 + pm x.2 * pm z.2)/2 := by
+  rw [Fintype.sum_prod_type]
+  simp only [Fintype.sum_bool, twoPartySelector_expansion]
+  simp only [show pm true = -1 by rfl, show pm false = 1 by rfl]
+  ring
 
 end FEI

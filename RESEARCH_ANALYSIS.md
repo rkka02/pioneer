@@ -1,3 +1,210 @@
+## MAX Round 5 — Final Push & Campaign Synthesis
+
+**Case C. The universal FEI bound remains open.** This round produced an explicit non-XOR family with singular-value entropy per unit of influence above **3.76092558367391147455**, a strict improvement of the campaign's ordinary Boolean lower bound, and a kernel proof that bounding fixed-order midpoint crossings is equivalent to the frozen conjecture. A rank-five matrix already violates the proposed sharp-rank-two inequality. The smallest possible violating rank is in **$\{3,4,5\}$**. Below, all numerical enclosures use integer transforms or Gram polynomials and outward rational bounds. Entropies are in bits.
+
+### 1. A non-XOR lift gains half a bit per unit of influence
+
+Let $M_f=f/\sqrt{|X||Y|}$, $S(M_f)=H(\sigma_j(M_f)^2)$, and $I(f)=I_X+I_Y$. On two signs per party take the real CHSH polynomial
+$$
+ b(x,y)=\tfrac12\{x_1(y_1+y_2)+x_2(y_1-y_2)\}.
+$$
+At each fixed $y$ it selects one signed $x$ bit. By symmetry the same holds at each fixed $x$. It is balanced in each fibre, $I_X=I_Y=1$, and in the two coordinate-character bases its matrix is $\tfrac12\left(\begin{smallmatrix}1&1\\1&-1\end{smallmatrix}\right)$. Its two squared singular values are $1/2,1/2$. Both singular spaces are orthogonal to their respective constant functions.
+
+For **any** Boolean $h$ on $n$ bits, take $n$ disjoint copies and put $F_h=h(b_1,\ldots,b_n)$. Its entire nonzero squared singular spectrum is
+$$
+ \boxed{\quad 2^{-|T|}\widehat h(T)^2\ \text{with multiplicity }2^{|T|}
+       \quad(\widehat h(T)\ne0).\quad}
+$$
+Indeed, expand $h$ in Walsh characters. The term indexed by $T$ uses the nonconstant singular spaces on its occupied blocks and the constant direction elsewhere. Distinct terms have orthogonal domains **and** orthogonal ranges. Within each term the singular values multiply. Every input edge in block $j$ changes the composite precisely when the gate changes and $j$ is pivotal for the other independent, unbiased gate outputs. Consequently
+$$
+ S(M_{F_h})=H(h)+I(h),\qquad I(F_h)=2I(h).
+ \tag{5.1}
+$$
+If $h$ has a nonzero singleton, the spectrum contains a rational square divided by two. Its square root is irrational. Every singular value of a normalized Boolean XOR matrix is the absolute value of a dyadic rational. Thus even permutations and sign changes of rows and columns cannot turn this construction into an XOR matrix. The kernel proves the selector expansion, vanishing row sum and row Gram formula. The Python verifier checks the **entire** predicted spectrum against a dense two-sided Walsh transform for all gates on one and two bits and six three-bit gates. [Lean selector identities](FEI/ResearchLemmas.lean) · [Matrix verifier](scripts/max5_matrix.py)
+
+For the finite monotone $h$ of §4 this gives
+$$
+ 3.7609255836739114745548285067531113225
+ < S(M_{F_h})/I(F_h) <
+ 3.760925583673911474554828506753111323 .
+$$
+More generally, if $C_*$ is the optimal ordinary FEI constant and $K_S=\sup S(M_f)/I(f)$, then $K_S\ge(C_*+1)/2$, in the extended reals. Tensoring this matrix and applying the finite-alphabet typical-set limit from (4.6) puts the same lower bound on a universal constant for $\log_2 r_{1/4}$. The interval above is for entropy on one explicitly defined matrix. The fixed-error conclusion uses tensor powers.
+
+**Sharpness of the gadget at its influence.** If every row and column of a sign matrix is balanced, each side has influence at least one by Parseval and Poincaré. Equality on both sides forces every slice to have Walsh support at level one. Hence $f(x,y)=x^\mathsf{T}Ay$ and $Ay$ is a signed coordinate vector for every sign vector $y$. Indeed a linear Boolean form has exactly one nonzero coefficient, by squaring it. Each nonzero row of $A$ defines a homogeneous linear form taking values in $\{-1,0,1\}$. Its coefficient absolute values sum to one by maximizing the form. Flipping one term at a maximizer shows each nonzero absolute coefficient is $1/2$ or 1. Each nonzero row therefore has squared norm at least $1/2$, and $\|A\|_F^2=1$. Thus the rank is at most two and $S\le1$, attained above. Direct enumeration on two bits per party gives eight rank-one and eight rank-two signed-dictator tables. Replacing a bottom scalar input by this gadget has an exactly quantified gain. Equation (5.1) gives no divergence for a scalar family of bounded ratio. [Dense checks](scripts/max5_matrix.py)
+
+### 2. What fixed-error sampling, noise and overlapping features can prove
+
+**Sampling actual columns with slack.** Write $v_y=f(\cdot,y)/\sqrt{|X|}$, $\rho=\mathbb E v_yv_y^\mathsf{T}$, let $\lambda_j$ be its eigenvalues and $\tau_k=\sum_{j>k}\lambda_j$. For the span $V_m$ of $m$ independent uniform columns,
+$$
+ \mathbb E\,\mathrm{tr}((1-P_{V_m})\rho)
+ \le \sum_{\lambda_j>0}\min\{\lambda_j,(1-\lambda_j)/m\}
+ \le \tau_k+k/m. \tag{5.2}
+$$
+For a unit eigenvector $e_j$, the vector $(m\lambda_j)^{-1}\sum_l\langle v_l,e_j\rangle v_l$ belongs to the sampled span and has mean $e_j$. Its mean squared error is $(1/\lambda_j-1)/m$ by independence and unit column norms. Zero is another candidate. Sum the better bound against $\lambda_j$. In particular $8r_{1/8}$ samples suffice in expectation for error $1/4$, and some such span works. Since any sampled span is a real subspace, a uniform $2^{O(I)}$ sampling upper bound with fixed slack would also settle (4.6).
+
+The slack matters. With $D=2^n$, use constant $+1$ on three of four equally likely row tags, and on the fourth use $(-1)^{x\cdot y}$ for $x,y\in\mathbb F_2^n$. Distinct unit columns have inner product $\gamma=3/4$. The top squared singular value is $\gamma+(1-\gamma)/D$, so $r_{1/4}=1$. For **any** $m$ distinct chosen columns, inversion of their equicorrelation Gram matrix gives mean residual
+$$
+ (1-m/D)(1-\gamma)(1+m\gamma)/(1+(m-1)\gamma).
+$$
+Thus the exact threshold is $3m^2+4m\ge3D$. Even the best column subset needs order $\sqrt D$ to match the one-dimensional subspace's error target. At $D=65\,536$ it needs 256. This is a gap in sample count against the **same-error optimal rank**. It is compatible with the influence conjecture. [Exact regressions, sample expectations and dense Walsh checks](scripts/max5_matrix.py)
+
+**Two-sided noise and decision-tree clusters.** XOR convolution already has Walsh singular vectors. On these matrices the best arbitrary rank-$k$ subspace captures exactly the mass of the $k$ heaviest Walsh characters, including when some weights tie. Thus relaxing the basis gives no automatic improvement to the KKLMS exponent on this subfamily. For the two-sided noise operator the Hilbert–Schmidt norm squared is $\sum_{U,V}\widehat f(U,V)^2\rho^{2(|U|+|V|)}$. Here is an explicit obstruction to using its trace norm to bound the required rank. [Kelman–Kindler–Lifshitz–Minzer–Safra](https://arxiv.org/abs/1911.10579)
+
+Take the XOR matrix of $h=2\prod_{j=1}^m(1-\mathbf1_{\mathrm{AND}_k})-1$, with $m=2^k$, $u=1/m$, $a=(1-u)^m$ and $\beta=2a-1$. Its scalar influence is $mk\,2u(1-u)^{m-1}=\Theta(k)$. Put $z=\rho^2$. The smoothed trace norm and squared Hilbert–Schmidt norm are respectively
+$$
+ |\beta|+2\{[1-2u+u(1+z)^k]^m-a\},\qquad
+ \beta^2+4\{[(1-u)^2+u^2((1+z^2)^k-1)]^m-a^2\}.
+$$
+Both follow by multiplying the one-tribe Walsh generating functions, with the empty coefficient corrected separately. If $k(1-\rho)\to\infty$, the latter norm squared converges to $(2/e-1)^2<1/4$. Hence smoothed Frobenius error at most $1/2$ forces $k(1-\rho)=O(1)$, by the triangle inequality and the same subsequence argument. In this regime $((1+z)/2)^k$ is bounded below and the **logarithm of the trace norm is $\Omega(2^k)$**. Yet the original matrix has $\log r_{1/4}=O(k)$. The mass on $j>0$ occupied tribes is $4a\Pr[\mathrm{Bin}(m,u)=j]$. Keeping at most 16 occupied tribes loses at most $4/17<1/4$ by Markov and uses at most $(1+m2^k)^{16}$ modes.
+
+For translation columns, a uniform decision-tree leaf fixing coordinate set $Q$ has squared mean-column norm $\sum_{S\subseteq Q}p_S$, independently of the answers defining that leaf. This is at most $\beta^2+|Q|\,2u(1-u)^{m-1}$. Even an adaptive coordinate tree using the best single Euclidean center in each leaf therefore needs expected depth $\Omega(2^k)$ for mean squared error $1/4$. The logarithm of its number of leaves is at least its expected depth by the entropy of the leaf distribution. At $k=8,\rho=1-1/(2k)$, exact arithmetic already gives trace norm at least $2^{173}$ and expected depth greater than 235. These obstructions concern trace-norm estimates and leaf clustering. [Integer Walsh and generating-function tests](scripts/max5_matrix.py)
+
+**Overlapping row features.** Suppose columns drawn from shared labels $B(y)$ are, up to column phases, normalized signs $v_b$ satisfying $|\langle v_b,v_c\rangle|\le\kappa<1$ for distinct labels. Then
+$$
+ S(M)\le H(B)\le 2\widetilde I_Y/(1-\kappa).
+$$
+The Gram diagonal after grouping identical labels is their probability vector, so its entropy bounds spectral entropy. On a changed-label edge the projective disagreement is at least $(1-\kappa)/2$. Summing cube edge isoperimetry over the label cells gives $\sum_i\Pr[B(y)\ne B(y^i)]\ge H(B)$. For $f=a(x)b(y)(-1)^{A(x)\cdot B(y)}$, any uniformly distributed $A(X)$ gives equality $S=H(B)$ and $\kappa=0$, including nonlinear encodings with complete overlap among physical inputs.
+
+There is also a product bound when individual rows need not be orthogonal. Allow $f=a(x)b(y)\prod_j c_{j,y}(x_j)$ on independent physical row blocks, with **arbitrary overlaps of features within each block** and fully shared column labels. If the span of the local sign dictionary has dimension at most $r\ge2$, then
+$$
+ S(M)\le 2[2+\log_2(r-1)]\widetilde I_X+(2/\ln2)\widetilde I_Y .
+$$
+Choose a uniform reference column $y_0$. Multiply a tensor basis by the sign of that column. In each block choose the constant and complete a basis for the span of $c_{j,y}c_{j,y_0}$, of dimension at most $r$. For a local residual sign of minority density $v$, the mass off the constant is $\theta=4v(1-v)\le I_{\rm loc}$, and its measurement entropy is at most $h_2(\theta)+\theta\log_2(r-1)$. The binary bound in Round 4 and edge isoperimetry give $h_2(\theta)\le2I_{\rm loc}$. For a physical edge whose disagreement over $y$ is $p$, averaging over $y_0,y$ makes the residual disagree with probability $2p(1-p)\le2\min(p,1-p)$. The other blocks cancel on that edge, including the global row phase in the two-column product. Sum the conditional entropies, average the choice of common basis, and apply (4.7). This allows arbitrary local rank at a logarithmic cost. [Overlapping dictionaries and nonlinear encoding checks](scripts/max5_matrix.py)
+
+A further obstruction applies to recoding an extremal monotone XOR gate. For any measure-preserving encoders $\pi,\sigma$ into a uniform logical cube, $h(\pi(x)\oplus\sigma(y))$ has the original XOR singular law. For a logical displacement $v$, its disagreement $d_h(v)$ is at least $|\widehat h(\{j\})|$ for every $j$ flipped by $v$, by testing the translated difference against $\chi_j$. For each threshold $t$ project $\pi$ onto the coordinates with singleton magnitude greater than $t$. Its equal cells have entropy equal to their number of retained coordinates, hence the sum of their edge-change probabilities is at least that number. Integrating in $t$ gives side influence at least $\sum_j|\widehat h(\{j\})|$, and likewise for $\sigma$. For unate $h$ this is $I(h)$. Separate uniform nonlinear encoders therefore cannot improve the unate XOR ratio by lowering its physical influence. The gate in (5.1) uses both parties jointly at each logical input. [Encoding checks](scripts/max5_matrix.py)
+
+### 3. Where the constant two first fails
+
+For rank $r\ge2$, minority sign density $\mu>0$ and $q=1-\lambda_1$, testing the constant vectors gives $q\le4\mu(1-\mu)\le I(f)$. Splitting off the largest eigenvalue and using the binary inequality of Round 4 gives the general bounded-rank estimate
+$$
+ S(M_f)\le 2I(f)+q\log_2(r-1).
+$$
+Here $h_2(q)\le4\mu\log_2(1/\mu)\le2I(f)$. This recovers the sharp constant two at rank two. If $C_*<\infty$, (4.7) with the Walsh basis gives $S\le C_* I_X+(2/\ln2)\widetilde I_Y$, since the conditional entropy is the mean Fourier entropy of the columns. Adding the transposed estimate to this one and using (5.1) locates the optimal unrestricted matrix constant:
+$$
+ (C_*+1)/2\le K_S\le C_*/2+1/\ln2.
+$$
+
+**A rank-five witness.** Take the indicator matrix $E$ below in binary row and column order $00,01,10,11$. Append $w$ guard bits to each party. The sign equals $-1$ on $E$ when both guards are zero and $+1$ elsewhere.
+$$
+ E=\begin{pmatrix}0&1&0&1\\1&1&1&1\\0&1&0&0\\1&1&0&0\end{pmatrix}.
+$$
+Here $\mu=9/16$ before guarding and $I(1-2E)=3/2$. At $w=12$ the guarded sign has **rank five**, $I=57/33554432$, and
+$$
+ 2.0024983293 < S(M)/I < 2.0024983294 .
+$$
+The constant rows and columns outside the guards give rank $1+\operatorname{rank}E$ by subtracting a constant row and column. To verify the entropy, group the inactive guard and the four active native points on each side, with multiplicities $(4(2^w-1),1,1,1,1)$. Isolate the positive eigenvalues of the resulting $5\times5$ integer Gram quotient, scaled by $(4\cdot2^w)^2$, via its real-rooted characteristic polynomial. The script also tests the grouped influence by a dense WHT at $w=1$. [Gram and boundary certificates](scripts/max5_matrix.py)
+
+There is a shape criterion for constructing such witnesses. For a nonempty event $E$ of density $\mu$, let $S_E$ denote the squared-singular-value entropy of its normalized indicator, $D_E=I(1-2E)/(2\mu)-\log_2(1/\mu)$, and $t=2^{-w}$. Writing $L=\log_2(1/(\mu t^2))$, the guarded sign satisfies, for each fixed base event,
+$$
+ \frac{S(M)}{I}=2\,\frac{L+S_E-2+\log_2 e+o(1)}{L+D_E}. \tag{5.3}
+$$
+Indeed its influence is exactly $t^2[I(1-2E)+4w\mu]$. In the normalized matrix the subtracted indicator term is $2t$ times the native indicator operator of Frobenius norm $\sqrt\mu$, supported on the active row and column spaces. On each side rotate the global constant vector to the unit constant on the inactive part. This rotation differs from the identity in operator norm by $O(\sqrt t)$. In the rotated coordinates the matrix is within $O(t^{3/2})$ of the block diagonal with a 1 and the native term. Thus its small squared singular values are $4\mu t^2\nu_j+O(t^{5/2})$, where $\nu_j$ are the positive squared singular values of the Frobenius-normalized indicator. The rank is fixed, and the large eigenvalue is one minus their sum. Expanding its binary entropy gives (5.3), with entropy error $o(t^2)$. The rank-five witness has $S_E-D_E\in[.5968371843,.5968371844]$, above $2-\log_2 e$. Exhausting **all 65,535 nonempty $4\times4$ events** gives 175 integer Gram spectral signatures. The maxima of this surplus at indicator ranks two and three are enclosed by $[.3112781244,.3112781245]$ and $[.4999999999,.5000000001]$. The 175 groups retain the least boundary for each spectrum and use rational eigenvalue and logarithm enclosures. A second exact enumeration restricts to rank-three indicators with four physical rows, each supported on a subcube or empty. With three or four column bits, respectively, 12,320 and 136,320 normalized layouts give supremum at most 0.500000001. A row translation can put three independent rows first, and a column-cube isometry normalizes the first subcube. The vanishing four-by-four Gram determinant then enumerates all permitted fourth rows. This resolves the first asymptotic violation in this finite seed class. [Exhaustive verifier](scripts/max5_small_rank.py)
+
+**A dimension-free positive result at small rank.** Every sign whose *minority event indicator* has real rank at most two satisfies $S(M)\le2I$. The sign itself can have rank three. The following sharp information inequality is the main step. Write $J_E=I(X;Y\mid E=1)$ for classical mutual information under the uniform law on the event. Then
+$$
+ S_E-J_E\le\log_2(5/4) \qquad(\operatorname{rank}\mathbf1_E\le2). \tag{5.4}
+$$
+For rank one the event is a rectangle. For rank two choose two independent indicator columns. If all three nonzero patterns $10,01,11$ occur on those columns, any other nonzero column, a real linear form taking only $0,1$ on all three patterns, must equal one of the two columns. Otherwise there are at most two nonzero row types. Transpose if necessary. Under the event there are now two row labels with priors $\pi,1-\pi$. Conditional column laws are uniform on two sets $A,B$. Let $a,b$ be their respective probabilities of the overlap. The extra bits within each row label are independent of the column given the label.
+
+Put $z=2\sqrt{\pi(1-\pi)ab}$, $d=|1-2\pi|$. The squared singular entropy is $h_2((1+\sqrt{d^2+z^2})/2)$ by the two-vector Gram determinant. Classical posterior uncertainty is restricted to the overlap and is at most $z$, by $h_2(p)\le2\sqrt{p(1-p)}$ applied with the overlap posterior. For this last scalar inequality, the difference $\sqrt{1-x^2}-h_2((1+x)/2)$ vanishes at both endpoints of $[0,1]$. Its derivative changes from positive to negative exactly once because, at $x=\tanh s$, $s/\sinh s$ decreases from one to zero. Also $g(u)=1-h_2((1+\sqrt u)/2)$ is convex, since its derivative is $\operatorname{atanh}(\sqrt u)/(2\ln 2\sqrt u)$. Integrating the increasing derivative gives $g(d^2+z^2)-g(d^2)\ge g(z^2)$. It follows that
+$$
+ S_E-J_E\le z+h_2((1+z)/2)-1\le\log_2(5/4).
+$$
+The one-variable maximum occurs at $z=3/5$. Equal priors and two five-point sets meeting in three points attain it, already on finite uniform cubes. [Exact equality instance](scripts/max5_small_rank.py)
+
+For the implication to the sign, summing edge isoperimetry over all physical fibres gives $I(f)/(2\mu)\ge \log_2(1/\mu)+J_E$. Indeed the two terms before summing are the conditional expectations on the event of $\log_2(1/\Pr(E\mid X))$ and $\log_2(1/\Pr(E\mid Y))$. For $\mu\le1/8$, the squared singular law of $M_f$ majorizes $(1-4\mu,\,4\mu\nu_1,\ldots)$. To see this, keep the constant matrix and the first $k-1$ modes of the indicator. The residual squared norm is at most $4\mu\sum_{j\ge k}\nu_j$, and $1-4\mu$ is the largest comparison entry. Thus $S(M_f)\le h_2(4\mu)+4\mu S_E$. Apply $h_2(s)\le s\log_2(e/s)$ and (5.4), using $\log_2(5/4)<2-\log_2 e$, to obtain $S\le2I$. For $1/8\le\mu\le1/4$, rank at most three gives $S\le1+q\le1+4\mu\le4\mu\log_2(1/\mu)$. The last inequality is concavity with equality at the two endpoints. On $[1/4,1/2]$ the same isoperimetric allowance is at least 2, greater than $\log_2 3$.
+
+This also proves $S\le2I$ for a rank-three sign with a projective row type and a projective column type each of probability at least $1/2$. Choose one representative $x_0,y_0$ of each and multiply the sign by $f(x_0,y_0)f(x,y_0)f(x_0,y)$. The singular spectrum is unchanged. Every row-edge disagreement is now the smaller of its original value and its complement, since all columns of the chosen projective type give the same edge orientation. The column statement follows using $x_0$. The negative event is confined off the dominant row and column classes, has density at most $1/4$, and has rank two or less by the constant row and column argument.
+
+**What is left for rank three.** Up to transpose and local phases, every rank-three sign has at most three column labels. Choose three independent columns and divide each row by its first entry. If all four row patterns $(1,s,t)$ occur, any further column is an affine sign-valued form on the full two-cube, hence is a signed copy of one of the first three by squaring. Otherwise there are at most three projective row types. A finite-dimensional sufficient test follows. Use the four canonical rows $+++, -++, +-+, ++-$, row probabilities $p_0,p_1,p_2,p_3$ and column probabilities $q_1,q_2,q_3$. Set $u_i=\sum_{j\ne0,i}p_j$, $c_i=\min(q_i,1-q_i)$, $d_i=\min(u_i,1-u_i)$, $\alpha_i=\sum c_j/2-c_i$, $\beta_i=\sum d_j/2-d_i$, and $\varphi(v)=\min(v,1-v)\log_2(1/\min(v,1-v))$ by continuity. Then
+$$
+ I\ge 2\sum_i[\alpha_i\varphi(u_i)+\beta_i\varphi(q_i)].
+$$
+For a row-type change $0\leftrightarrow i$, or a change between the other two nonzero types, the projective distance is $c_i=\alpha_j+\alpha_k$. Thus the row metric is the weighted sum of the three cuts having masses $u_i$. On three column types the analogous singleton cuts have weights $\beta_i$. All weights are nonnegative by the triangle inequality. Apply cube isoperimetry to these six binary cuts. The true entropy is obtained from the $3\times3$ Gram matrix of the canonical rows with these two sets of weights. Testing this sufficient scalar comparison on all denominator-eight probabilities, modulo the reference choice and simultaneous permutations, gives $S/I\le1.53629180$ on the mesh (560 nontrivial cases using the displayed lower bound). I do not have a proof over the continuum, or an exclusion of rank four. [Scalar mesh and eigenvalue audit](scripts/max5_small_rank.py)
+
+### 4. A strictly stronger finite ordinary FEI certificate
+
+The final balanced monotone function satisfies
+$$
+ \boxed{6.521851167347822949109657013506222645
+ < H(f)/I(f) <
+ 6.521851167347822949109657013506222646.} \tag{5.5}
+$$
+The new lower endpoint exceeds the **upper** endpoint of Round 1 by $5.52207357013506222645\times10^{-16}$. It exceeds the lower bound currently listed at #71a by $0.0000054564247763741096570\ldots$. The advance within this round comes from an unequal choice of distinguished leaves as well as additional recursion. The half-bit gain in §1 concerns singular-value entropy. [Standalone certificate, Python standard library](scripts/max5_record.py) · [Public #71a ledger](https://teorth.github.io/optimizationproblems/constants/71a.html)
+
+Use Numaro's nine-edge core, signs and ordered endpoints as given in the verifier. Denote a balanced marked gate by $g=(H,I,x,n)$, marking a specific input with singleton $x$. Write $A\circ_*B$ for insertion into $A$'s marked slot, marking $B$'s marked input, and $P_j(g)$ for the $j$-copy path. The sign convention is monotone, so the marked influence is its singleton. Disjoint insertion gives
+$$
+ (H_A+x_AH_B,\ I_A+x_A(I_B-1),\ x_Ax_B,\ n_A+n_B-1).
+$$
+Indeed the Walsh terms using the slot, of mass $x_A$, receive a disjoint nonempty child frequency. For nine balanced marked gates $G_e$, let $L[G_0,\ldots,G_8]$ keep the exterior signs and on each parallel edge evaluate its gate, identifying its marked bit with the free core bit. The eight other coordinate bits of the edge are fixed, and the private variables are disjoint. Write $r=1/256,\ q=57/256,\ I_0=261/128$. With $v_e=\mathbf1_{a_e}-\mathbf1_{b_e}$ on the ordered edge, $c_0$ zero on every edge, $t_e=x(G_e)$, and $\eta(p)=-p\log_2p$,
+$$
+\begin{split}
+ H(L)&=\sum_T\eta\!\left((\widehat c_0(T)+\sum_e t_e\widehat v_e(T))^2\right)
+       +r\sum_e[H(G_e)-\eta(t_e^2)+16(1-t_e^2)],\\
+ I(L)&=I_0+r\sum_e(I(G_e)-1),\qquad x(L)=q+rt_0,\qquad
+ n(L)=9+\sum_e(n(G_e)-1).
+\end{split}
+$$
+The private-empty slice gives the first sum. Every remaining coefficient comes from a unique edge and has 256 copies with amplitude divided by 256. For influence, the singleton from each private variable is its native singleton times $r$. The marked bit of each child contributes $rt_e$ to its parallel core singleton. The exterior supplies the fixed core sum. Balance follows by averaging the two endpoints. Monotonicity inside the matched edge comes from the child. Between distinct core cells it follows from the original selector table being monotone for **every** assignment of its independent selectors. Hence these formulas apply throughout the construction.
+
+First take 18 stages $g\mapsto L[P_4(g),\ldots,P_4(g)]$, starting with the 18-bit seed. Using an ordinary disjoint tower of depth 120 at this point gives lower endpoint $6.521851167347822397084357798331629465$. For the asymmetric improvement apply the following operation 14 times to the resulting marked gate. Within one operation set $P=P_4(g)$, $Q=P_3(g)$. In the lists below $P$ occurs eight times after the first entry.
+
+1. Use $D=L[\mathrm{private\ dictator},P,\ldots,P]$ and **mark the private dictator**. On its edge the output ignores the free core bit. Its singleton is $r$. The two-input representation has one unused marked core input before this change of mark.
+2. Use the ordinary core mark in $A=L[D,P,\ldots,P]$ and in $B=L[Q\circ_* A,P,\ldots,P]$.
+3. Return $L[Q\circ_* B,\ldots,Q\circ_* B]$, with nine independent copies and its ordinary core mark.
+
+Using the larger singleton immediately has an entropy cost. Placing the exception in the **last** copy of a three-copy prefix discounts that cost by the product of the prefix influences, while the changed singleton still reaches the parallel edge at the next host. Applying the uniform root directly to $Q\circ_* A$ gives $6.5218511673386506670\ldots$, below the old result. The construction through $B$ gives $6.5218511673478229242\ldots$ on the first pass, strictly above it. The disjoint intervals certify both comparisons before further iterations.
+
+The final marked gate has arity $N=53640376614841982879191603488073858728917571028951976153665520733834492$. Take its **finite depth-140 disjoint composition**, on $N^{140}$ bits. Its ordinary ratio is $\frac{H}{I-1}(1-I^{-140})$ by disjoint balanced composition, which is the quantity bounded in (5.5). The certificate uses a direct integer WHT on the published seed, integer nine-bit Walsh rows thereafter, and outward fixed-point intervals with denominator $2^{192}$. It encloses logarithms by the positive $\operatorname{atanh}$ series on a reduced argument at most $1/3$, including the geometric remainder after 65 terms. [Seed provenance](https://numaro.tech/research/fourier-entropy-influence-2026/) · [Replay](scripts/max5_record.py)
+
+**Other tested seed choices.** Splitting $m=1,\ldots,6$ original matched edges into independent endpoint selectors gives literal 19–24-bit, generally nonmonotone gates. Each split adds $2r$ to entropy and $r/2$ to influence. The 256 flat private coefficients become two groups of 512 at half the amplitude, and the new disagreement on the parallel edge has probability $1/2$. All six lose amplified score. Four unequal-depth patterns using paths of lengths three, four and five also lost. The best of these four was below $6.5218508447571$.
+
+I also tested a fork on a core input and its parallel selector. Keep the other eight tuned edges. The two ports enter linearly on disjoint regions, as $J_0+uJ_1+s\,\mathbf1_e$ on the remaining variables. Substitute a three-copy path in $u$, and paths of lengths $2,\ldots,7$ in $s$, identifying their marked inputs. If their marked singletons are $a,b$, the new marked singleton is $qa+rb$. Relative to independent insertion, only the singleton slice on the common mark collides. Its core Fourier rows change from $a\widehat{J_1}, b\widehat{\mathbf1_e}$ to their sum, using the private-empty part of $J_1$ where the second row is nonzero. Monotonicity and linearity keep the total influence equal to that of independent insertion. Used on all nine edges of a fresh host, the best of the six forks had amplified score in $[6.521851149340753,6.521851149340754]$. Two full 19-bit WHTs independently check the split and a majority/dictator instance of the fork. [Exact variant tests](scripts/max5_record.py)
+
+### 5. Lean package and verification
+
+The new fixed-order result defines restrictions on actual inputs of the frozen Boolean cube. It proves the signed Walsh butterfly, the exact change in influence and in grid energy, and the literal midpoint formula at each coarse scale. For every $n,f$ the kernel proves
+$$
+ 0\le R_{\rm fixed}(f)\le G(f),\qquad
+ G(f)-R_{\rm fixed}(f)\le(32/3)I(f),\qquad
+ R_{\rm fixed}(f)\le H(f)/2\le R_{\rm fixed}(f)+(38/3)I(f).
+$$
+Consequently $\mathrm{FEI}\ \longleftrightarrow\ \exists C>0\ \forall n,f,\ R_{\rm fixed}(f)\le C I(f)$.
+
+For one pair $u,v$ and step $h>4|v|$, the exact cost is $h(|v|-\operatorname{dist}(u,h(\mathbb Z+1/2)))_+$. To verify it, recenter $u/h$ at its nearest integer and use $\operatorname{dist}(x,\mathbb Z)^2=x^2-2(|x|-1/2)_+$ on $[-1,1]$. For the omitted scales, the per-step cost is at most $h^2/2$, and their geometric sum is at most $(32/3)v^2$. Actual restriction coefficients are $u\pm v$, and $\sum v^2$ is the physical queried influence. This accounts for every step in the recursion, including the last grid layer which vanishes on the child spectra. The integer verifier checks 962 distinct restriction nodes, including all 256 three-bit functions. [End-to-end Lean proofs](FEI/GridEquivalence.lean) · [Integer midpoint checks](scripts/max5_crossings.py)
+
+**Kernel inventory.** The default `lake build` passes (4,606 jobs in the build graph). The audit executes explicit `#print axioms` commands for **all 87 named theorems**, including the private ones. The union is exactly `propext`, `Classical.choice`, `Quot.sound`. Source scan found zero `sorry`, `admit` or added axioms. The frozen file's SHA-256 before and after is `6bd49da1bc4ada83635a00f9c4957aa4a8e42ae74cc570b1e8ceaabab8d6634b`. [Reproducible full axiom audit](scripts/max5_audit.py)
+
+| Module | Public theorems, grouped by subject | Private theorems |
+|---|---|---:|
+| [Challenge](FEI/Challenge.lean) | Frozen definitions and conjecture | 0 |
+| [ChallengeSanity](FEI/ChallengeSanity.lean) | `parseval`, `coordInfluence_eq_sum`, `totalInfluence_eq_spectralInfluence`, `fourierEntropy_and2`, `totalInfluence_and2`, `two_le_of_fei_bound`, `totalInfluence_constFalse`, `fourierEntropy_constFalse` | 7 |
+| [ResearchLemmas](FEI/ResearchLemmas.lean) | `entropyTerm_mul`, `dyadic_copy_entropy`, `levelTail_mul_le_totalInfluence`, `amplification_ratio_formula`, `amplified_score_le_uniform_bound`, `boolean_restriction_pair`, `boolean_face_equations`, `spectral_pooled_cauchy`, `pooled_sqrt_bound`, `perfect_matching_score`, `branching_mass_eq`, `ternary_copy_gap_le_two_variance`, `dyadic_sum_of_two_squares`, `routed_excess_le`, `signed_slice_mass`, `sign_of_odd_unit_energy`, `scaled_deletion_loss`, `gridError_le_candidate`, `gridError_restriction`, `gridError_le_quarter_sq`, `gridError_restriction_loss_le`, `grid_slice_variance`, `cube_defect_absorption`, `gridLayer_eq`, `fourierCoeff_dyadic`, `gridLayer_tail_zero`, `fourierGridEnergy_bounds`, `fei_iff_grid_bound`, `binary_entropy_four_mass`, `binary_mixture_small_root`, `rank_two_entropy_scalar`, `twoPartySelector_expansion`, `twoPartySelector_row_sum`, `twoPartySelector_gram` | 13 |
+| [GridEquivalence](FEI/GridEquivalence.lean) | `fourierCoeff_restrictFirst`, `coordInfluence_first`, `totalInfluence_restrictFirst`, `coarseStep_midpoint`, `fourierGridEnergy_restrictFirst`, `fourierGridEnergy_sub_crossings`, `restrictionCrossings_nonneg`, `fourierEntropy_crossing_bounds`, `fei_iff_crossing_bound` | 16 |
+
+The pre-existing report is a byte-identical suffix of 190,377 bytes, with SHA-256 `5b71b2cbcc872071131956495abd61437bf26888f5618febc030a86c250aee03`.
+
+The 36 private theorems are included in the audit output by their full kernel names. The matrix entropy lift, the rank-five construction, the two-label entropy theorem, and the record recursion have mathematical proofs and executable certificates here. Lean checks the three named selector identities for the matrix lift. The uniform grid and crossing equivalences have kernel proofs through to `FourierEntropyInfluenceConjecture`.
+
+From the project root, the following commands replay the certificates and kernel audit. The record verifier uses only the Python standard library. The other numerical verifiers use the project’s NumPy Walsh utilities.
+
+```sh
+python3 scripts/max5_record.py
+python3 scripts/max5_matrix.py
+python3 scripts/max5_small_rank.py
+python3 scripts/max5_crossings.py
+lake build
+python3 scripts/max5_audit.py
+```
+
+### 6. Campaign synthesis and publication priorities
+
+1. **The finite #71a improvement.** The strongest immediately reviewable submission is (5.5), citing Numaro's seed and the disjoint amplification theorem, with the asymmetric host proof and standalone verifier. The 621-bit first shared stage in Round 1 gives a simpler intermediate certificate via amplification. The numerical certificate and the construction are ready for a draft PR. A public archival copy and upstream review are outstanding. This campaign did not submit a PR. [Certificate](scripts/max5_record.py) · [Upstream entry](https://github.com/teorth/optimizationproblems/blob/main/constants/71a.md)
+2. **The dyadic-grid and fixed-order-crossing equivalences.** This is the most complete standalone Lean package. It includes the scalar sandwich from Round 4, the exact midpoint identity, the tree comparison, and the equivalence to the original statement. The guarded and stopped-walk examples in Rounds 3–4 explain why paying for one frequency from its own variation fails. [Grid formalization](FEI/GridEquivalence.lean) · [Scalar lemmas](FEI/ResearchLemmas.lean)
+3. **Singular-value entropy and two-party Boolean influence.** Pair the fixed-error equivalence (4.6) with the CHSH lift (5.1), the rank-five violation, and the sharp two-label gap (5.4). The half-bit separation from the scalar XOR benchmark is uniform in the scalar gate, and the rank-five example is small enough to audit from a five-by-five quotient. The full matrix theorems remain candidates for Lean formalization. [Matrix certificates](scripts/max5_matrix.py) · [Small-rank certificates](scripts/max5_small_rank.py)
+
+The central open step at the end of five rounds is a dimension-independent bound on the fixed-order crossing cost, or equivalently on fixed-error rank in (4.6). Free choice of a subspace helps on overlapping feature families. XOR matrices contain the original Fourier concentration problem exactly. No diverging Boolean family or universal constant was obtained. A narrower question with an explicit test is whether the rank-three Gram entropy always lies below twice the six-cut bound in §3.
+
 # Fourier entropy and influence on the uniform cube
 
 ## MAX Round 4
