@@ -8,6 +8,9 @@ import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Algebra.Ring.Int.Parity
 import Mathlib.Data.Nat.Prime.Basic
 import Mathlib.Algebra.Order.Round
+import Mathlib.Analysis.Convex.SpecificFunctions.Basic
+import Mathlib.Analysis.Complex.ExponentialBounds
+public import Mathlib.Analysis.SpecialFunctions.BinaryEntropy
 
 /-! Auxiliary bounds for the FEI experiments. -/
 
@@ -344,5 +347,312 @@ theorem cube_defect_absorption {d ρ boundary excess : ℝ}
     (2 * d - 1) * boundary ≤ 3 * d * excess := by
   nlinarith [mul_nonneg (by linarith : 0 ≤ d + 1) (sub_nonneg.mpr hiso),
     mul_nonneg hd (sub_nonneg.mpr hoverlap)]
+
+/-- Squared error in rounding one Walsh coefficient to the grid of step 2⁻ᵐ. -/
+noncomputable def gridLayer (m : ℕ) (x : ℝ) : ℝ :=
+  gridError 1 ((2 : ℝ)^m * x) / ((2 : ℝ)^m)^2
+
+theorem gridLayer_eq (m : ℕ) (x : ℝ) :
+    gridLayer m x = gridError ((2 : ℝ)^m)⁻¹ x := by
+  simp only [gridLayer, gridError, div_one, one_mul, div_inv_eq_mul]
+  rw [mul_comm x ((2 : ℝ)^m)]
+  field_simp
+
+/-- At dimension n all further grid errors vanish for Boolean Walsh coefficients. -/
+noncomputable def gridSum (n : ℕ) (x : ℝ) : ℝ :=
+  ∑ m ∈ Finset.range n, gridLayer m x
+
+private theorem unit_grid_reflect (z : ℤ) (x : ℝ) :
+    gridError 1 ((z : ℝ) - x) = gridError 1 x := by
+  have step (y : ℝ) : gridError 1 ((z : ℝ) - y) ≤ gridError 1 y := by
+    have h := gridError_le_candidate (h := 1) (by norm_num) ((z : ℝ) - y) (z - round y)
+    push_cast at h
+    simpa only [gridError, div_one, one_mul, sub_sub_sub_cancel_left, sub_sq_comm] using h
+  exact le_antisymm (step x) (by simpa using step ((z : ℝ) - x))
+
+private theorem gridSum_reflect (n : ℕ) (x : ℝ) : gridSum n (1-x) = gridSum n x := by
+  apply Finset.sum_congr rfl
+  intro m _
+  unfold gridLayer
+  rw [mul_sub, mul_one]
+  have h := unit_grid_reflect ((2 : ℤ)^m) ((2 : ℝ)^m*x)
+  push_cast at h
+  rw [h]
+
+private theorem gridSum_nonneg (n : ℕ) (x : ℝ) : 0 ≤ gridSum n x := by
+  unfold gridSum gridLayer gridError
+  positivity
+
+private theorem gridSum_succ (n : ℕ) (x : ℝ) :
+    gridSum (n+1) x = gridError 1 x + gridSum n (2*x)/4 := by
+  rw [gridSum, Finset.sum_range_succ', gridSum, div_eq_mul_inv, Finset.sum_mul, add_comm]
+  simp only [gridLayer, pow_zero, one_mul, one_pow, div_one]
+  congr 1
+  apply Finset.sum_congr rfl
+  intro m _
+  rw [pow_succ, mul_assoc, mul_pow]
+  ring
+
+private theorem gridSum_small (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (hh : x ≤ 1/2) :
+    gridSum (n+1) x = x^2 + gridSum n (2*x)/4 := by
+  rw [gridSum_succ]
+  congr 1
+  rcases lt_or_eq_of_le hh with h | rfl
+  · have hr : round x = 0 := round_eq_zero_iff.mpr ⟨by linarith, h⟩
+    simp [gridError, hr]
+  · norm_num [gridError, round_eq_iff, round_two_inv]
+
+private theorem gridSum_le_variance (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (hx' : x ≤ 1) :
+    gridSum n x ≤ x*(1-x) := by
+  induction n generalizing x with
+  | zero => simpa [gridSum] using mul_nonneg hx (sub_nonneg.mpr hx')
+  | succ n ih =>
+    have small (y : ℝ) (hy : 0 ≤ y) (h : y ≤ 1/2) : gridSum (n+1) y ≤ y*(1-y) := by
+      rw [gridSum_small n hy h]
+      have v := ih (x := 2*y) (by linarith) (by linarith)
+      nlinarith
+    by_cases h : x ≤ 1/2
+    · exact small _ hx h
+    · have h' := small (1-x) (by linarith) (by linarith)
+      rw [gridSum_reflect] at h'
+      nlinarith
+
+private noncomputable def amplitudeEntropy (x : ℝ) : ℝ := -x^2 * Real.logb 2 x
+
+private theorem amplitudeEntropy_double {x : ℝ} (hx : x ≠ 0) :
+    amplitudeEntropy x = x^2 + amplitudeEntropy (2*x)/4 := by
+  simp only [amplitudeEntropy, Real.logb_mul (by norm_num : (2:ℝ) ≠ 0) hx,
+    Real.logb_self_eq_one (by norm_num : 1 < (2:ℝ))]
+  ring
+
+private theorem amplitudeEntropy_eq (x : ℝ) :
+    entropyTerm (x^2)/2 = amplitudeEntropy |x| := by
+  by_cases hx : x = 0
+  · simp [hx, amplitudeEntropy, entropyTerm]
+  · rw [entropyTerm, ite_eq_right (pow_ne_zero _ hx), Real.logb_pow, amplitudeEntropy,
+      Real.logb_abs, sq_abs]
+    push_cast
+    ring
+
+private theorem variance_le_amplitudeEntropy {x : ℝ} (h : 1/2 ≤ x) (h' : x ≤ 1) :
+    x*(1-x) ≤ amplitudeEntropy x := by
+  have hx : 0 < x := by linarith
+  have ha : 0 ≤ 2 - x⁻¹ := sub_nonneg.mpr ((inv_le_iff_one_le_mul₀ hx).mpr (by linarith))
+  have hb : 0 ≤ x⁻¹ - 1 := sub_nonneg.mpr ((one_le_inv₀ hx).mpr h')
+  have hc := strictConcaveOn_log_Ioi.concaveOn.2
+    (show (1:ℝ) ∈ Set.Ioi 0 by norm_num) (show (2:ℝ) ∈ Set.Ioi 0 by norm_num)
+    ha hb (by ring)
+  simp only [smul_eq_mul, Real.log_one, mul_zero, zero_add] at hc
+  rw [show (2-x⁻¹)*1+(x⁻¹-1)*2 = x⁻¹ by ring, Real.log_inv] at hc
+  have hl : x⁻¹ - 1 ≤ - Real.logb 2 x := by
+    rw [Real.logb, ← neg_div, le_div_iff₀ (Real.log_pos (by norm_num : (1:ℝ)<2))]
+    exact hc
+  have hmul := mul_le_mul_of_nonneg_left hl (sq_nonneg x)
+  have hi : x*x⁻¹=1 := mul_inv_cancel₀ hx.ne'
+  unfold amplitudeEntropy
+  nlinarith [show x^2*x⁻¹=x by linear_combination x*hi]
+
+private theorem gridSum_le_amplitudeEntropy (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (h' : x ≤ 1) :
+    gridSum n x ≤ amplitudeEntropy x := by
+  have zero_case (k : ℕ) : gridSum k 0 = 0 := by simp [gridSum, gridLayer, gridError]
+  induction n generalizing x with
+  | zero =>
+    simp only [gridSum, Finset.range_zero, Finset.sum_empty]
+    exact mul_nonneg_of_nonpos_of_nonpos (neg_nonpos.mpr (sq_nonneg x))
+      (Real.logb_nonpos (by norm_num) hx h')
+  | succ n ih =>
+    rcases eq_or_lt_of_le hx with rfl | hp
+    · simp [zero_case, amplitudeEntropy]
+    by_cases h : x ≤ 1/2
+    · rw [gridSum_small n hx h, amplitudeEntropy_double hp.ne']
+      linarith [ih (x := 2*x) (by linarith) (by linarith)]
+    · exact (gridSum_le_variance _ hx h').trans (variance_le_amplitudeEntropy (by linarith) h')
+
+private theorem amplitudeEntropy_sub_mass_le (n : ℕ) {x : ℝ} (hx : 0 ≤ x) (h' : x ≤ 1)
+    (hgrid : x = 0 ∨ 1 ≤ (2:ℝ)^n*x) : amplitudeEntropy x - x^2 ≤ gridSum n x := by
+  rcases hgrid with rfl | hg
+  · simp [amplitudeEntropy, gridSum, gridLayer, gridError]
+  induction n generalizing x with
+  | zero =>
+    simp only [pow_zero, one_mul] at hg
+    have h : x = 1 := le_antisymm h' hg
+    simp [h, amplitudeEntropy, gridSum]
+  | succ n ih =>
+    have hp : 0 < x := lt_of_le_of_ne hx (by intro e; rw [← e, mul_zero] at hg; linarith)
+    by_cases h : x ≤ 1/2
+    · rw [gridSum_small n hx h, amplitudeEntropy_double hp.ne']
+      rw [pow_succ, mul_assoc] at hg
+      have v := ih (x := 2*x) (by linarith) (by linarith) hg
+      nlinarith
+    · have hm := Real.logb_le_logb_of_le (b := 2) (by norm_num)
+          (x := (2:ℝ)⁻¹) (by norm_num) (y := x) (by linarith)
+      rw [Real.logb_inv, Real.logb_self_eq_one (by norm_num)] at hm
+      have t := mul_le_mul_of_nonneg_left hm (sq_nonneg x)
+      unfold amplitudeEntropy
+      linarith [gridSum_nonneg n.succ x]
+
+
+/-- The integer numerator of every normalized Boolean Walsh coefficient. -/
+theorem fourierCoeff_dyadic {n : ℕ} (f : (Fin n → Bool) → Bool) (S : Finset (Fin n)) :
+    ∃ z : ℤ, (2:ℝ)^n * fourierCoeff f S = z := by
+  let signInt (b : Bool) : ℤ := if b then -1 else 1
+  have castSign (b : Bool) : ((signInt b : ℤ) : ℝ) = pm b := by
+    cases b <;> norm_num [signInt, pm]
+  refine ⟨∑ x : Fin n → Bool, signInt (f x) * ∏ i ∈ S, signInt (x i), ?_⟩
+  simp only [fourierCoeff, chi, Int.cast_sum, Int.cast_mul, Int.cast_prod, castSign]
+  field_simp
+
+/-- All terms beyond the finite grid sum are zero on a Boolean spectrum. -/
+theorem gridLayer_tail_zero {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (S : Finset (Fin n)) (k : ℕ) : gridLayer (k+n) |fourierCoeff f S| = 0 := by
+  obtain ⟨z, hz⟩ := fourierCoeff_dyadic f S
+  have h : (2:ℝ)^n * |fourierCoeff f S| = ((|z| : ℤ) : ℝ) := by
+    simpa [abs_mul, abs_of_pos (pow_pos (by norm_num : (0:ℝ)<2) n)] using congrArg abs hz
+  have hc : (2:ℝ)^k * ((|z| : ℤ) : ℝ) = (((2:ℤ)^k * |z| : ℤ) : ℝ) := by push_cast; rfl
+  unfold gridLayer
+  rw [pow_add, mul_assoc, h, hc]
+  simp only [gridError, div_one, one_mul, round_intCast, sub_self, zero_pow (by decide : 2 ≠ 0), zero_div]
+
+private theorem fourierCoeff_abs_le_one {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (S : Finset (Fin n)) : |fourierCoeff f S| ≤ 1 := by
+  have hs := Finset.single_le_sum (f := fun T ↦ (fourierCoeff f T)^2)
+    (fun T (_ : T ∈ Finset.univ) ↦ sq_nonneg _) (Finset.mem_univ S)
+  rw [parseval] at hs
+  nlinarith [sq_abs (fourierCoeff f S)]
+
+private theorem amplitudeEntropy_le_missing_mass {x : ℝ} (h : 0 ≤ x) (h' : x ≤ 1) :
+    amplitudeEntropy x ≤ 1 - x^2 := by
+  rcases eq_or_lt_of_le h with rfl | hp
+  · norm_num [amplitudeEntropy]
+  have p : 0 < x^2 := sq_pos_of_pos hp
+  have hm := Real.log_le_sub_one_of_pos (inv_pos.mpr p)
+  rw [Real.log_inv, Real.log_pow] at hm
+  have hh := mul_le_mul_of_nonneg_left hm p.le
+  have eq : x^2*(x^2)⁻¹=1 := mul_inv_cancel₀ p.ne'
+  have ln2 : (1:ℝ) ≤ 2 * Real.log 2 := by linarith [Real.log_two_gt_d9]
+  have v : 0 ≤ 1-x^2 := by nlinarith [mul_nonneg h (sub_nonneg.mpr h')]
+  have big := mul_le_mul_of_nonneg_right ln2 v
+  unfold amplitudeEntropy Real.logb
+  rw [← mul_div_assoc, div_le_iff₀ (Real.log_pos (by norm_num : (1:ℝ)<2))]
+  nlinarith
+
+/-- Sum over the squared rounding errors on all dyadic grids of step at most one. -/
+noncomputable def fourierGridEnergy {n : ℕ} (f : (Fin n → Bool) → Bool) : ℝ :=
+  ∑ S, gridSum n |fourierCoeff f S|
+
+/-- The dyadic grid energy approximates half the frozen entropy from below. -/
+theorem fourierGridEnergy_bounds {n : ℕ} (f : (Fin n → Bool) → Bool) :
+    fourierEntropy f / 2 - 2 * totalInfluence f ≤ fourierGridEnergy f ∧
+    fourierGridEnergy f ≤ fourierEntropy f / 2 := by
+  classical
+  let a (S : Finset (Fin n)) := fourierCoeff f S
+  have sumH : fourierEntropy f / 2 = ∑ S, amplitudeEntropy |a S| := by
+    rw [fourierEntropy, div_eq_mul_inv, Finset.sum_mul]
+    apply Finset.sum_congr rfl
+    intro S _
+    exact amplitudeEntropy_eq _
+  rw [sumH]
+  constructor
+  · let rest := (Finset.univ : Finset (Finset (Fin n))).erase ∅
+    have mass : ∑ S ∈ rest, (a S)^2 + (a ∅)^2 = 1 :=
+      (Finset.univ.sum_erase_add (fun S ↦ (a S)^2) (Finset.mem_univ ∅)).trans (parseval f)
+    have splitI : ∑ S ∈ rest, (S.card : ℝ) * (a S)^2 = totalInfluence f := by
+      rw [totalInfluence_eq_spectralInfluence]
+      simp [rest, a, spectralInfluence]
+    have inf : ∑ S ∈ rest, (a S)^2 ≤ totalInfluence f := by
+      rw [← splitI]
+      apply Finset.sum_le_sum
+      intro S hS
+      have pos := Finset.card_pos.mpr (Finset.nonempty_iff_ne_empty.mpr (Finset.mem_erase.mp hS).1)
+      exact le_mul_of_one_le_left (sq_nonneg _) (by exact_mod_cast pos)
+    have others : ∑ S ∈ rest, (amplitudeEntropy |a S| - gridSum n |a S|) ≤ ∑ S ∈ rest, (a S)^2 := by
+      apply Finset.sum_le_sum
+      intro S _
+      obtain ⟨z, hz⟩ := fourierCoeff_dyadic f S
+      have hgrid : |a S| = 0 ∨ 1 ≤ (2:ℝ)^n * |a S| := by
+        have h : (2:ℝ)^n * |a S| = ((|z| : ℤ) : ℝ) := by
+          simpa [a, abs_mul, abs_of_pos (pow_pos (by norm_num : (0:ℝ)<2) n)] using congrArg abs hz
+        by_cases zz : z = 0
+        · left; simp [zz] at h; simpa using h
+        · right; rw [h]; exact_mod_cast (show (1:ℤ) ≤ |z| by have := abs_pos.mpr zz; omega)
+      have hs := amplitudeEntropy_sub_mass_le n (abs_nonneg (a S)) (fourierCoeff_abs_le_one f S) hgrid
+      rw [sq_abs] at hs
+      linarith
+    have empty := amplitudeEntropy_le_missing_mass (abs_nonneg (a ∅)) (fourierCoeff_abs_le_one f ∅)
+    rw [sq_abs] at empty
+    have hs := Finset.univ.sum_erase_add (fun S ↦ amplitudeEntropy |a S| - gridSum n |a S|)
+      (Finset.mem_univ ∅)
+    change (∑ S ∈ rest, _) + _ = _ at hs
+    rw [Finset.sum_sub_distrib] at others
+    simp only [Finset.sum_sub_distrib] at hs
+    change _ ≤ ∑ S, gridSum n |a S|
+    linarith [gridSum_nonneg n |a ∅|]
+  · exact Finset.sum_le_sum fun S _ ↦ gridSum_le_amplitudeEntropy n (abs_nonneg _) (fourierCoeff_abs_le_one f S)
+
+/-- A dimension-independent upper bound on the signed-grid energy is equivalent to FEI. -/
+theorem fei_iff_grid_bound : FourierEntropyInfluenceConjecture ↔
+    ∃ C : ℝ, 0 < C ∧ ∀ (n : ℕ) (f : (Fin n → Bool) → Bool),
+      fourierGridEnergy f ≤ C * totalInfluence f := by
+  constructor
+  · rintro ⟨C, hC, h⟩
+    exact ⟨C/2, by positivity, fun n f ↦ (fourierGridEnergy_bounds f).2.trans (by linarith [h n f])⟩
+  · rintro ⟨C, hC, h⟩
+    exact ⟨2*C+4, by positivity, fun n f ↦ by linarith [(fourierGridEnergy_bounds f).1, h n f]⟩
+
+
+/-- Entropy of a two-outcome measurement whose rare outcome has probability
+at most four times the density of a phase feature. Both sides are in nats. -/
+theorem binary_entropy_four_mass {u x : ℝ} (hu : 0 ≤ u) (hu' : u ≤ 1/2)
+    (hx : 0 ≤ x) (hxu : x ≤ 4*u) : Real.binEntropy x ≤ -(4*u) * Real.log u := by
+  rcases eq_or_lt_of_le hu with rfl | hp
+  · have := le_antisymm (by linarith : x ≤ 0) hx
+    simp [this]
+  have ln4 : Real.log 4 = 2*Real.log 2 := by
+    rw [show (4:ℝ) = 2*2 by norm_num, Real.log_mul (by norm_num : (2:ℝ) ≠ 0) (by norm_num)]
+    ring
+  by_cases hsmall : u ≤ 1/8
+  · have mono := Real.binEntropy_strictMonoOn.monotoneOn
+      (show x ∈ Set.Icc (0:ℝ) 2⁻¹ from ⟨hx, by norm_num; linarith⟩)
+      (show 4*u ∈ Set.Icc (0:ℝ) 2⁻¹ from ⟨by positivity, by norm_num; linarith⟩) hxu
+    rw [Real.binEntropy_eq_negMulLog_add_negMulLog_one_sub (4*u)] at mono
+    have htail := Real.negMulLog_le_one_sub_self (x := 1-4*u) (by linarith)
+    rw [Real.negMulLog, Real.log_mul (by norm_num : (4:ℝ) ≠ 0) hp.ne', ln4] at mono
+    nlinarith [mul_nonneg hp.le (show 0 ≤ 2*Real.log 2 - 1 by linarith [Real.log_two_gt_d9])]
+  · have hlog (c : ℝ) (hc : u ≤ c⁻¹) : Real.log c ≤ -Real.log u := by
+      have h := Real.log_le_log hp hc
+      rw [Real.log_inv] at h
+      linarith
+    by_cases h : u ≤ 1/4
+    · have h4 := hlog 4 (by simpa using h)
+      rw [ln4] at h4
+      nlinarith [mul_nonneg (by linarith : 0 ≤ 4*u) (sub_nonneg.mpr h4),
+        mul_nonneg (by linarith : 0 ≤ 8*u-1) (Real.log_nonneg (by norm_num : (1:ℝ)≤2)),
+        Real.binEntropy_le_log_two (p := x)]
+    · have h2 := hlog 2 (by simpa using hu')
+      nlinarith [mul_nonneg (by linarith : 0 ≤ 4*u) (sub_nonneg.mpr h2),
+        mul_nonneg (by linarith : 0 ≤ 4*u-1) (Real.log_nonneg (by norm_num : (1:ℝ)≤2)),
+        Real.binEntropy_le_log_two (p := x)]
+
+/-- The smaller eigenvalue of a trace-one two-state mixture is bounded by
+its smaller measurement probability in a basis containing the common state. -/
+theorem binary_mixture_small_root {d θ w : ℝ} (hd : 0 ≤ d)
+    (ht : 0 ≤ θ) (ht' : θ ≤ 1) (hw : w ≤ 1/2)
+    (hdet : w*(1-w) = d*(1-d)*θ) : w ≤ d*θ := by
+  have hq : d*θ ≤ d := mul_le_of_le_one_right hd ht'
+  by_contra! h
+  have order := mul_pos (sub_pos.mpr h) (show 0 < 1-w-d*θ by linarith)
+  nlinarith [mul_nonneg (mul_nonneg hd ht) (sub_nonneg.mpr hq)]
+
+/-- Entropy estimate for the two nonzero squared singular values of a
+rank-two sign kernel with projective row and column densities μ and δ. -/
+theorem rank_two_entropy_scalar {μ δ w : ℝ} (hm : 0 ≤ μ) (hm' : μ ≤ 1/2)
+    (hd : 0 ≤ δ) (hd' : δ ≤ 1/2) (hw : 0 ≤ w) (hw' : w ≤ 1/2)
+    (hdet : w*(1-w) = 4*μ*(1-μ)*δ*(1-δ)) :
+    Real.binEntropy w ≤ -(4*(μ*δ))*Real.log (μ*δ) := by
+  have ht : 0 ≤ 4*μ*(1-μ) := mul_nonneg (by positivity) (by linarith)
+  have ht' : 4*μ*(1-μ) ≤ 1 := by nlinarith [sq_nonneg (1-2*μ)]
+  have h := binary_mixture_small_root hd ht ht' hw' (by rw [hdet]; ring)
+  apply binary_entropy_four_mass (mul_nonneg hm hd) (by nlinarith [mul_nonneg hm (sub_nonneg.mpr hd')]) hw
+  nlinarith [mul_nonneg (sq_nonneg μ) hd]
 
 end FEI
