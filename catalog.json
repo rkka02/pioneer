@@ -1,0 +1,103 @@
+{
+  "repository": "rkka02/pioneer",
+  "description": "Open mathematical problem research combining frontier AI reasoning, exact computational certificates, and Lean 4 formal verification across mathematical fields.",
+  "schema_version": 1,
+  "fields": [
+    "combinatorics",
+    "analysis",
+    "number-theory",
+    "algebra",
+    "geometry",
+    "probability",
+    "tcs"
+  ],
+  "problems": [
+    {
+      "slug": "tutte-3-flow",
+      "title": "Tutte's 3-Flow Conjecture",
+      "field": "combinatorics",
+      "subfield": "graph-theory",
+      "path": "problems/combinatorics/tutte-3-flow",
+      "status": "partial-results",
+      "conjecture_status": "open",
+      "sources": [
+        {
+          "catalog": "ProofAtlas Top 500",
+          "id": "#355"
+        }
+      ],
+      "tags": [
+        "graph-theory",
+        "nowhere-zero-flows",
+        "mod-3-orientations",
+        "group-connectivity",
+        "lean4"
+      ],
+      "challenge_file": "Tutte3Flow/Challenge.lean",
+      "challenge_sha256": "cae23039c18784404fbcb83491226cf7e7cd4a1d8b3d5bfe5f24567493fbbea6",
+      "lean_toolchain": "leanprover/lean4:v4.36.0",
+      "lean_theorems": {
+        "public": 56,
+        "private": 16,
+        "total": 72,
+        "sorry_count": 0
+      },
+      "rounds": "1 xhigh + 5 max",
+      "highlights": [
+        "Proved every 4-edge-connected (and odd-5-edge-connected) multigraph with at most 16 odd-degree vertices admits a nowhere-zero integer 3-flow (every counterexample needs >= 18 odd vertices).",
+        "Proved unrestricted b <= 12 nonroot degree-5 pinned theorem for arbitrary graph order via two independent C++17 enumerators certifying 139.2M (order 13) and 105.6B (order 15) isomorphism classes.",
+        "Kernel-verified end-to-end Lean 4 proof of the exact 2^(r-1) missing-boundary formula and universal one-edge Z3-connectivity repair for arbitrary r-block 3-matching trees (MatchingTree.lean).",
+        "Proved explicit 88-vertex unweighted obstruction to coupled Laplacian electrical rounding and pinned 5-cube obstruction to unsigned thin-tree cut bounds."
+      ]
+    },
+    {
+      "slug": "fourier-entropy-influence",
+      "title": "Fourier Entropy-Influence (FEI) Conjecture",
+      "field": "analysis",
+      "subfield": "boolean-fourier-analysis",
+      "path": "problems/analysis/fourier-entropy-influence",
+      "status": "record-broken",
+      "conjecture_status": "open",
+      "sources": [
+        {
+          "catalog": "ProofAtlas Top 500",
+          "id": "#412"
+        },
+        {
+          "catalog": "teorth/optimizationproblems",
+          "id": "#71a",
+          "url": "https://teorth.github.io/optimizationproblems/constants/71a.html"
+        }
+      ],
+      "tags": [
+        "boolean-functions",
+        "fourier-analysis",
+        "information-theory",
+        "optimization-constants",
+        "lean4"
+      ],
+      "challenge_file": "FEI/Challenge.lean",
+      "challenge_sha256": "6bd49da1bc4ada83635a00f9c4957aa4a8e42ae74cc570b1e8ceaabab8d6634b",
+      "lean_toolchain": "leanprover/lean4:v4.36.0",
+      "lean_theorems": {
+        "public": 51,
+        "private": 36,
+        "total": 87,
+        "sorry_count": 0
+      },
+      "rounds": "1 xhigh + 5 max",
+      "world_record": {
+        "metric": "H(f)/I(f) lower bound",
+        "previous_published": "6.521845710923046575 (Numaro 2026, #71a)",
+        "certified_interval": "[6.521851167347822949109657013506222645, 6.521851167347822949109657013506222646]",
+        "verifier": "scripts/max5_record.py"
+      },
+      "highlights": [
+        "Beat the published teorth/optimizationproblems #71a world record with a standalone stdlib-only exact rational certificate: H(f)/I(f) > 6.521851167347822949109657013506222645.",
+        "Kernel-verified end-to-end Lean 4 equivalence between the frozen FEI conjecture and uniform bounds on fixed-order dyadic midpoint crossings R_fixed(f) and dyadic grid energy G(f) (GridEquivalence.lean).",
+        "Proved equivalence of FEI with fixed-error real matrix rank log2(r_{1/4}(M)) <= K(I_X + I_Y), plus a non-XOR CHSH selector lift achieving S(M)/(I_X+I_Y) > 3.76092558367391147455 (+0.5 bit/influence above XOR).",
+        "Proved sharp rank-2 constant 2 and explicit rank-5 violation (> 2.0024983293), plus uniform P_2/I bounds for linearly recoded block-symmetric, quadratic lookup (P_2 < 60I), and block-permutation classes."
+      ]
+    }
+  ]
+}

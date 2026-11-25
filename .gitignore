@@ -1,0 +1,32 @@
+# Build & Lean caches
+.lake/
+**/.lake/
+build/
+**/build/
+*.olean
+*.ilean
+*.trace
+*.c.o
+*.c.o.export
+
+# Python & C++ temporaries
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.so
+*.dylib
+*.out
+.pytest_cache/
+
+# Local third-party reference staging (never redistribute external preprints)
+frontier_refs/
+**/frontier_refs/
+
+# OS & editor artifacts
+.DS_Store
+**/.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
