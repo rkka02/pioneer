@@ -1,0 +1,17 @@
+name = "fonollosaminmodulus"
+version = "0.1.0"
+keywords = ["math", "lean4", "number-theory", "additive-combinatorics"]
+defaultTargets = ["FonollosaMinModulus"]
+
+[leanOptions]
+pp.unicode.fun = true
+autoImplicit = false
+relaxedAutoImplicit = false
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.36.0"
+
+[[lean_lib]]
+name = "FonollosaMinModulus"
