@@ -4,6 +4,7 @@ public import FEI.ChallengeSanity
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.Positivity
+import Mathlib.Analysis.Real.Sqrt
 
 /-! Auxiliary bounds for the FEI experiments. -/
 
@@ -82,5 +83,70 @@ theorem amplified_score_le_uniform_bound {C h a : ℝ} (ha : 1 < a)
     simpa using (one.sub ht).const_mul (h / (a - 1))
   apply le_of_tendsto conv
   exact Eventually.of_forall fun k ↦ (hr k) ▸ ((div_le_iff₀ (hi k)).mpr (bound _ _))
+
+/-- The conditional mean and derivative of a sign have disjoint support and
+their squared magnitudes partition the two restrictions. -/
+theorem boolean_restriction_pair (u v : Bool) :
+    let e := (pm u + pm v) / 2
+    let d := (pm u - pm v) / 2
+    e * d = 0 ∧ e ^ 2 + d ^ 2 = 1 := by
+  cases u <;> cases v <;> norm_num [pm]
+
+/-- The constant and the three nonconstant coefficients of a two-dimensional
+face satisfy the Fourier equations for the square of a sign function. -/
+theorem boolean_face_equations (p q r s : Bool) :
+    let a := (pm p + pm q + pm r + pm s) / 4
+    let b := (pm p - pm q + pm r - pm s) / 4
+    let c := (pm p + pm q - pm r - pm s) / 4
+    let d := (pm p - pm q - pm r + pm s) / 4
+    a ^ 2 + b ^ 2 + c ^ 2 + d ^ 2 = 1 ∧
+      a * d + b * c = 0 ∧ a * b + c * d = 0 ∧ a * c + b * d = 0 := by
+  cases p <;> cases q <;> cases r <;> cases s <;> norm_num [pm]
+
+/-- Cauchy–Schwarz for pooled loss on the actual spectrum of the frozen
+statement. The empty set has zero loss, including for a biased function. -/
+theorem spectral_pooled_cauchy {n : ℕ} (f : (Fin n → Bool) → Bool)
+    (A : Finset (Fin n) → ℝ) (hA : A ∅ = 0) :
+    (∑ S, (fourierCoeff f S) ^ 2 * A S) ^ 2 ≤ totalInfluence f *
+      ∑ S, (fourierCoeff f S) ^ 2 * (A S) ^ 2 / (S.card : ℝ) := by
+  rw [totalInfluence_eq_spectralInfluence, spectralInfluence]
+  apply Finset.sum_sq_le_sum_mul_sum_of_sq_le_mul
+  · intro S _
+    positivity
+  · intro S _
+    positivity
+  · intro S _
+    by_cases hs : S = ∅
+    · simp [hs, hA]
+    · have hcard : 0 < (S.card : ℝ) := by
+        exact_mod_cast Finset.card_pos.mpr (Finset.nonempty_iff_ne_empty.mpr hs)
+      apply le_of_eq
+      field_simp [ne_of_gt hcard]
+
+/-- A mixed-loss bound closes the quadratic inequality for the square root
+of normalized pooled loss. The analytic diagonal estimate is a hypothesis. -/
+theorem pooled_sqrt_bound {y c : ℝ} (hc : 0 ≤ c) (h : y ^ 2 ≤ 3 * y + c) :
+    y ≤ 3 + Real.sqrt c := by
+  by_contra! hy
+  have hs := Real.sq_sqrt hc
+  have hn := Real.sqrt_nonneg c
+  have hp : 0 < (y - 3 - Real.sqrt c) * (y + Real.sqrt c) :=
+    mul_pos (by linarith) (by linarith)
+  nlinarith
+
+/-- In a perfect matching, the contributions from the core and the fresh gate
+inherit their bounds. The remaining entropy and excess influence have ratio 4.
+The hypotheses give the two exact Walsh identities. -/
+theorem perfect_matching_score {h i hg ig hb ib t d R : ℝ}
+    (ht : t ^ 2 ≤ 1) (hd : 0 ≤ d) (hR : 4 ≤ R)
+    (hg' : hg ≤ R * (ig - 1)) (hb' : hb ≤ R * (ib - 1))
+    (he : h = hg + t ^ 2 * hb + 2 * d * (1 - t ^ 2))
+    (hi : i - 1 = (ig - 1) + t ^ 2 * (ib - 1) + d / 2 * (1 - t ^ 2)) :
+    h ≤ R * (i - 1) := by
+  rw [he, hi]
+  have hcore := mul_le_mul_of_nonneg_left hb' (sq_nonneg t)
+  have hcopy := mul_nonneg (sub_nonneg.mpr hR)
+    (mul_nonneg hd (sub_nonneg.mpr ht))
+  linarith
 
 end FEI
