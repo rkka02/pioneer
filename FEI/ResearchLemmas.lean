@@ -7,6 +7,7 @@ import Mathlib.Tactic.Positivity
 import Mathlib.Analysis.Real.Sqrt
 import Mathlib.Algebra.Ring.Int.Parity
 import Mathlib.Data.Nat.Prime.Basic
+import Mathlib.Algebra.Order.Round
 
 /-! Auxiliary bounds for the FEI experiments. -/
 
@@ -260,5 +261,88 @@ theorem scaled_deletion_loss (c a b : ℝ) :
     field_simp
   rw [hr, mul_pow]
   ring
+
+/-- Squared distance to the grid of integer multiples of a positive step. -/
+noncomputable def gridError (h x : ℝ) : ℝ := (x - h * (round (x / h) : ℤ)) ^ 2
+
+theorem gridError_le_candidate {h : ℝ} (hh : 0 < h) (x : ℝ) (z : ℤ) :
+    gridError h x ≤ (x - h * z) ^ 2 := by
+  have h₁ := round_le (x / h) z
+  have h₂ := mul_le_mul_of_nonneg_left h₁ hh.le
+  rw [← abs_of_pos hh, ← abs_mul, ← abs_mul, abs_of_pos hh] at h₂
+  have hx : h * (x / h) = x := by field_simp
+  simp only [mul_sub, hx] at h₂
+  exact sq_le_sq.mpr h₂
+
+/-- The two nearest grid points for the parent coefficient pair give
+admissible comparison points for both signed restriction coefficients. -/
+theorem gridError_restriction {h : ℝ} (hh : 0 < h) (u v : ℝ) :
+    (gridError h (u + v) + gridError h (u - v)) / 2 ≤
+      gridError h u + gridError h v := by
+  let a := round (u / h)
+  let b := round (v / h)
+  have hp := gridError_le_candidate hh (u + v) (a + b)
+  have hm := gridError_le_candidate hh (u - v) (a - b)
+  push_cast at hp hm
+  change _ ≤ (u - h * (a : ℝ)) ^ 2 + (v - h * (b : ℝ)) ^ 2
+  nlinarith
+
+/-- Each coefficient lies within half a grid step of a nearest multiple. -/
+theorem gridError_le_quarter_sq {h : ℝ} (hh : 0 < h) (x : ℝ) :
+    gridError h x ≤ h ^ 2 / 4 := by
+  have he := mul_le_mul_of_nonneg_left (abs_sub_round (x / h)) hh.le
+  rw [← abs_of_pos hh, ← abs_mul, abs_of_pos hh, mul_sub] at he
+  have hx : h * (x / h) = x := by field_simp
+  rw [hx] at he
+  have hs := mul_self_le_mul_self (abs_nonneg _) he
+  rw [← sq, sq_abs] at hs
+  unfold gridError
+  nlinarith
+
+/-- This geometric envelope is summed over all steps at most four times
+the magnitude of the coefficient on the queried bit. -/
+theorem gridError_restriction_loss_le {h : ℝ} (hh : 0 < h) (u v : ℝ) :
+    gridError h u + gridError h v -
+      (gridError h (u + v) + gridError h (u - v)) / 2 ≤ h ^ 2 / 2 := by
+  have hp : 0 ≤ gridError h (u + v) := sq_nonneg _
+  have hm : 0 ≤ gridError h (u - v) := sq_nonneg _
+  linarith [gridError_le_quarter_sq hh u, gridError_le_quarter_sq hh v]
+
+/-- A random variable on an integer grid has variance at least the
+product of the distances from its mean to the adjacent grid points. -/
+theorem grid_slice_variance {ι : Type*} (s : Finset ι) (w : ι → ℝ) (x : ι → ℤ)
+    (h a : ℝ) (k : ℤ) (hw : ∀ i ∈ s, 0 ≤ w i) (hn : ∑ i ∈ s, w i = 1)
+    (ha : ∑ i ∈ s, w i * (h * (x i : ℝ)) = a) :
+    (a - h * k) * (h * ((k : ℝ) + 1) - a) ≤
+      ∑ i ∈ s, w i * (h * (x i : ℝ) - a) ^ 2 := by
+  let c := (a - h * k) * (h * ((k : ℝ) + 1) - a)
+  let b := h * (2 * (k : ℝ) + 1) - 2 * a
+  have hz : ∑ i ∈ s, w i * (h * (x i : ℝ) - a) = 0 := by
+    simp only [mul_sub, Finset.sum_sub_distrib, ← Finset.sum_mul, hn, ha, one_mul, sub_self]
+  calc
+    _ = (∑ i ∈ s, w i) * c + (∑ i ∈ s, w i * (h * (x i : ℝ) - a)) * b := by
+      rw [hn, hz]; ring
+    _ = ∑ i ∈ s, (w i * c + w i * (h * (x i : ℝ) - a) * b) := by
+      rw [Finset.sum_add_distrib, ← Finset.sum_mul, ← Finset.sum_mul]
+    _ ≤ _ := by
+      apply Finset.sum_le_sum
+      intro i hi
+      have hprod : (0 : ℤ) ≤ (x i - k) * (x i - k - 1) := by
+        rcases le_or_gt (x i) k with hle | hgt
+        · apply mul_nonneg_of_nonpos_of_nonpos <;> omega
+        · apply mul_nonneg <;> omega
+      have hr : (0 : ℝ) ≤ ((x i : ℝ) - k) * ((x i : ℝ) - k - 1) := by exact_mod_cast hprod
+      have hw' := mul_nonneg (hw i hi) (mul_nonneg (sq_nonneg h) hr)
+      dsimp [b, c]
+      nlinarith
+
+/-- Absorbing the maximum overlap of a subcube boundary with the defect
+boundary, after isoperimetry at defect density at most the cube density cubed. -/
+theorem cube_defect_absorption {d ρ boundary excess : ℝ}
+    (hiso : 6 * d * ρ ≤ boundary)
+    (hoverlap : boundary ≤ excess + 2 * (d + 1) * ρ) (hd : 0 ≤ d) :
+    (2 * d - 1) * boundary ≤ 3 * d * excess := by
+  nlinarith [mul_nonneg (by linarith : 0 ≤ d + 1) (sub_nonneg.mpr hiso),
+    mul_nonneg hd (sub_nonneg.mpr hoverlap)]
 
 end FEI

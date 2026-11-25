@@ -1,5 +1,211 @@
 # Fourier entropy and influence on the uniform cube
 
+## MAX Round 3
+
+**Case C.** This round gives a tree formulation of FEI in terms of crossing dyadic midpoints. A balanced Boolean family rules out bounding the sum of those crossings over all candidate queries at a node. The global bounds on $B$ and $X/I$ are both open here. We prove a uniform bound on $P_2/I$, hence on $X/I$, for several classes allowing linear data coding. In particular, $P_2<60I$ for nonconstant quadratic lookups on affine cells with distinct parity labels, even after an arbitrary linear recoding of all address and data bits. The best certified finite ordinary $H/I$ in this project is still the Round 1 interval $[6.5218511673478223969022,6.5218511673478223969023]$.
+
+Throughout this section, $a_S=\widehat f(S)$ is normalized, $p_S=a_S^2$, $K=|S|$ and $I=\sum Kp_S$. All logarithms measuring information are in bits. Write $\ell_i=\log_2(1+p_{S-i}/p_S)$ on supported incidences and $A=\sum_{i\in S}\ell_i$. The numerator of $B$ is $\sum_{K\ge2}p_S A(S)$ and its denominator is $\sum_{K\ge2}Kp_S$. The pooled second moment is $P_2=\sum_{K>0}p_S A(S)^2/K$. Its cross terms comprise $X$. Numerical intervals below use integer Walsh coefficients and outward rational logarithm bounds.
+
+### What the isoperimetric deficit controls
+
+Fix a coordinate subcube $C$ by setting $d\ge3$ bits to zero, with $\mu=2^{-d}$. Let $A$ have the same measure, $D=A\triangle C$, $\rho=\Pr(D)$, $h_U=1-2\mathbf1_U$, and $\varepsilon=I(h_A)-2d\mu$. Write $D_u$ for the section at fixed-bit assignment $u$. There is an exact overlap formula,
+$$
+\varepsilon=I(h_D)-4\mu\sum_{i=1}^d\Pr_y(D_0\triangle D_{e_i}).
+$$
+On a crossing edge the sign of $h_A=h_C h_D$ changes precisely when one factor changes. The edges on which both change have base assignments $0,e_i$, each of measure $\mu$. Equal volume gives $\Pr_y(D_0)=\sum_{u\ne0}\Pr_y(D_u)=\rho/(2\mu)$. Thus $I(h_D)\le\varepsilon+2(d+1)\rho$. If $\rho\le\mu^3$, edge isoperimetry also gives $I(h_D)\ge2\rho\log_2(1/\rho)\ge6d\rho$. Absorbing the overlap proves
+$$
+ I(h_D)\le\frac{3d}{2d-1}\,\varepsilon\le\frac95\,\varepsilon.
+$$
+The zero-defect case follows directly. This controls the entire boundary of the perturbation. Stability theorems supply geometric proximity to extremizers under small excess. The next example specifies what may still occur inside that neighborhood. [Ellis](https://www.cambridge.org/core/journals/combinatorics-probability-and-computing/article/abs/almost-isoperimetric-subsets-of-the-discrete-cube/3E878F4F45A483ADE934A011884FC716) · [Ellis–Keller–Lifshitz](https://arxiv.org/abs/1702.01675) · [Keevash–Long](https://ora.ox.ac.uk/objects/uuid%3A621130cf-eed4-456d-b640-0dcd4fabf5cd)
+
+For an arbitrary free-bit event $E$, move the occupied vertex in each outer fiber from $0$ to $e_z$ precisely on $E$. Each fiber still has one occupied vertex. The data boundary and the signed slice from Round 2 obey
+$$
+ \rho=2\mu\Pr(E),\qquad \varepsilon=2\mu I(h_E),\qquad
+ b_V=-2\mu\widehat{\mathbf1_E}(V),\qquad
+ \mathcal E_z(A,C)=4\mu^2\mathcal E(E).
+$$
+Here $\mathcal E(E)$ includes only deletions with nonempty parent, as in Round 2. Both amplitudes on each retained edge have the same multiplier. In particular, for positive deficit the ratio is exactly $2\mu\mathcal E(E)/I(h_E)$.
+
+**Even fixing $d=3$ and requiring the added and removed islands each to be connected leaves the single-slice question equivalent to FEI.** Under failure of FEI, the two-copy mask of Round 2 gives events $E_j$ with $I(h_{E_j})\to0$ and $\mathcal E(E_j)\to\infty$. Indeed its retained edges between two active balanced copies contribute $2\delta N(f)$, with both child and parent nonempty. Introduce a fresh bit and take a set $J_j$ whose lower face is full and whose upper face is $E_j$. This connects every upper vertex to the lower face. The full defect is also connected, since the two copies of the island touch across the $z$ edges. For each retained data edge there are two frequency copies, with both endpoint magnitudes halved. Thus $\mathcal E(J_j)\ge\mathcal E(E_j)/2$ and $I(h_{J_j})=I(h_{E_j})/2+1-\Pr(E_j)$. Multiply $\mathbf1_{J_j}$ by the indicator of a point on $w$ fresh bits to obtain the final island. Its boundary is $2^{-w}(I(h_{J_j})+2w\Pr(J_j))$, it stays connected, and summing the $2^w$ copies retains at least $2^{-w}\mathcal E(J_j)$. A **fixed** sufficiently large $w$ makes both tolerances hold for all large $j$, and the inherited slice still diverges. In the other direction $\mathcal E_z\le N(h_A)\le H(h_A)$ and FEI would bound the slice. The stability information controls the size and boundary of an island while allowing this arbitrary internal gate. An exact finite instance at $d=3,w=14$ has $\rho=45/4194304$ and $\varepsilon=175/524288$, both below $1/512$. [Section identities and connected-island WHT tests](scripts/max3_stability.py)
+
+### What signed congruences enforce at each precision
+
+For each nonzero $a_s$, write $j_s$ for its reduced dyadic denominator exponent. At precision $m\ge0$ let $V=\{s:j_s>m\}$, $e_s=j_s-m$, and join two copies of $V$ by an edge $t\sim v$ precisely when
+$$
+ 2^m\sum_{s\supseteq t\cup v}a_s\notin\mathbb Z.
+$$
+**There is a perfect matching, and there is a transport with $e_s$ units of capacity at each copy of $s$.** Every edge satisfies $|t\cup v|\ge m+2$, by the signed coface congruence. The empty coface sum is $f(0)$, an integer.
+
+To prove both assertions put $M=\bigoplus_{s\in V}\mathbb Z/2^{e_s}\mathbb Z$. The form $\sum_s 2^m a_s x_sy_s\bmod1$ on $M$ is perfect because each diagonal entry has odd reduced numerator. Write $u_t(s)=\mathbf1_{t\subseteq s}$. The form on $u_t,u_v$ gives exactly the adjacency test because discarded coefficients contribute integers. For any $B\subseteq V$, the subgroup generated by its rows projects onto $M_B$, by lifting representatives and solving the unit triangular incidence system over $\mathbb Z$. Write $N$ for its neighbors. The same argument gives surjectivity onto $M_{V\setminus N}$ for the rows outside $N$. Their annihilator therefore injects into $M_N$ by coordinate projection and contains the span of the rows of $B$. Consequently $M_B$ is a quotient of a subgroup of $M_N$. Taking orders gives $\sum_B e_s\le\sum_N e_s$. Taking minimum generator counts gives $|B|\le|N|$, since the generator count of a finite abelian 2-group is the dimension of its 2-torsion and cannot increase in a subgroup or quotient. Apply Hall, respectively to expanded copies and single vertices. The binary independence argument for the finest plane has a precedent in Potapov's proof. The finite-group argument retains different precisions in one pairing. [Potapov, §3](https://arxiv.org/html/2609.21563v1) · [Explicit matching tests](scripts/max3_grids.py)
+
+**The transport cannot in general preserve squared amplitudes, even on the larger graph $|t\cup v|\ge m+2$.** Take $z\,{\rm Maj}_{2b+1}$ with an independent sign $z$. Its maximum amplitude is $c=\binom{2b}{b}/4^b$. Indeed, the derivative in any majority bit is, up to sign, a central-layer indicator of measure $c$, and the singleton coefficients attain $c$ before the tag. The total mass at degree two is $(2b+1)c^2\to2/\pi>1/2$. The largest $m$ with $2^{-m}\ge2c$ tends to infinity. The squared distance of every coefficient to the grid at this scale equals its squared amplitude. Two degree-two vertices have union of size at most four, so a self-coupling supported on eligible edges cannot carry these masses when $m\ge3$, since it would send more than half the mass into less than half. At $2b+1=4095$ the degree-two mass is in $[.63669750,.63669751]$ and $m=5$. [Exact central-layer and dense checks](scripts/max3_grids.py)
+
+There is also a stronger unsigned test. For an affine frequency flat $F$ of codimension $r\ge1$, $S\in F$, let $h=2^{1-r}$ and $t=a_S\bmod h\in[0,h)$. Then
+$$
+ p(F)-a_S^2\ \ge\ t(h-t).
+$$
+The partial Walsh coefficient on the $r$ physical directions, multiplied by the appropriate remaining character, is $h\mathbb Z$-valued, has mean $a_S$ and second moment $p(F)$. If $a_S\in[jh,(j+1)h]$, average $(Y-jh)(Y-(j+1)h)\ge0$ and subtract the squared mean. The dyadic construction below passes even this conditional variance test. [Grid variance tests](scripts/max3_grids.py) · [Formalized scalar inequality](FEI/ResearchLemmas.lean)
+
+### A two-shell vector that survives the finer signed tests
+
+There are unit **real** Walsh vectors with divergent $B$ and $X/I$ which satisfy the matchings at every precision, the affine variance tests at every codimension, and the signed flat congruences at every codimension above $O(k\log k)$. This improves the relaxation in Round 2, where a single parity count at the finest bit sufficed to exclude every signing.
+
+Take $k=4^b$, $n=k^2$, and append a mandatory balancing bit to the $n$ core frequencies. Put $\beta=2^{-s}$, $d=(n+s)/2$, and start every supported numerator at $1$ in units of $2^{-d}$. We use $s=\log_2 k$, or $s=2\lfloor\lfloor\log_2\binom n{k-1}\rfloor/8\rfloor$ for a thinner floor. In each shell $j=k-1,k$ let $M_j=\binom nj$ and $D=(4^d-2^n)/2$. Pair its coefficients and replace each pair by $(1+b,1-b)$. This adds $2b^2$ units of squared mass and preserves the signed sum. Both shell sizes are even since $n$ is a power of two. Set $u_j$ to the largest power of two at most $\sqrt{D/M_j}$. Start all pairs with $b=u_j$, and upgrade $\lfloor(D-M_j u_j^2)/(6u_j^2)\rfloor$ pairs to $b=2u_j$. The deficit on that shell is less than $6u_j^2$.
+
+Fill the remaining deficit on degree-two pairs using increments $2\cdot4^e$ in decreasing order. With $t=\min(\log_2 u_{k-1},\log_2 u_k,\lfloor(n-1)/2\rfloor)$ the deficit is divisible by $2\cdot4^t$, including its initial term $4^d-2^n$. At most three pairs per exponent suffice by base four. There are $O(n)$ pairs needed and $\binom n2$ positions available for large $k$. This gives exact Parseval. All supported numerators are odd and congruent to $1\bmod 2^t$. At every $m<d$, complementation of the core coordinates within the tagged slice is a signed-graph perfect matching because each union is the whole tagged set, whose coface has only the unchanged top coefficient. The capacities $d-m$ are constant. At $m\ge d$ the active set is empty.
+
+An affine flat of ambient codimension $r$ meeting the support contains at least $2^{n-r}$ of its points for $r\le n$. Its baseline signed sum belongs to $2^{1-r}\mathbb Z$, since $d\le n-1$. Every correction belongs to that grid if $r\ge d-t+1=O(\log M_k)=O(k\log k)$. Larger codimensions giving a finer grid are automatic. The largest amplitude is $O(M_{k-1}^{-1/2})$ by construction, including the degree-two fill, and is at most $\beta/2$ for both choices of $s$ for large $k$. Thus all shifted Chang tests of Round 2 hold. To check the stronger variance test put $h=2^{1-r}$. When $h\ge2|a_S|$ the necessary total is $a_S^2+t'(h-t')=h|a_S|$, where $t'=a_S\bmod h$. The floor alone gives $p(F)\ge\beta h/2$. If $h<2|a_S|$ and $r\le d$, the *other* points have mass at least $\beta h/4\ge h^2/4$. For $r>d$ the variance correction is zero. Missing amplitudes impose no additional cost.
+
+The upper shell has mass at least $(1-\beta)/8$. Each of its $k$ core parents has squared odds at least $M_k/(144 M_{k-1})=(n-k+1)/(144k)$, using $u_j>\sqrt{D/M_j}/2$ and $u_j-1\ge u_j/2$ for large $k$. Meanwhile $I\le1+k+\beta n/2+2=O(k)$. This shell forces $B=\Omega(\log k)$ and $X/I=\Omega(\log^2 k)$ for the **constructed vector**. At $k=256$ the thicker floor gives certified lower bounds $B>2.002211$ and $X/I>11.964215$. Its signed flat congruences already hold at every codimension $r\ge1208$ out of 65,537 dimensions.
+
+The displayed signs have inverse value $2^{n-d}>1$ at zero. Moreover, for the **thin** floor every signing is impossible for all sufficiently large $k$. Remove the tag. The squared tail past degree $k$ is at most $\beta=2^{-\Theta(k\log k)}$. The cube theorem of Keller–Klein would give squared distance $O(\beta)$ to a Boolean sign of degree at most $k$ (apply their indicator theorem and rescale). In their error term $\beta(2e\ln(1/\beta)/k)^k=o(1)$ for this choice of $\beta$. Each coefficient of the approximating sign on the upper shell belongs to $2^{1-k}\mathbb Z$ by the degree granularity argument of Round 2. Our coefficients there have magnitudes $O(M_k^{-1/2})<2^{-k}$. Their total squared distance to that grid is the entire shell mass, bounded below by $(1-\beta)/8$. This contradicts Parseval. For the thicker floor $\beta=1/k$ the approximation theorem's hypothesis fails. We have neither a Boolean signing nor a sign-independent exclusion there. [Keller–Klein, cube Theorem 1.7](https://arxiv.org/html/1901.08839v1) · [Integer construction, WHT inversion and exact shell certificates](scripts/max3_grids.py)
+
+**A dual obstruction applies even to the thicker floor.** Any assignment of signs to the prescribed magnitudes can be written $2^{-d}\sigma(S)A_S$, where $A_S$ are the signed odd numerators above and $\sigma$ is a Boolean sign on the core frequency cube. Write $H_\sigma(x)=\sum_S\sigma(S)\chi_S(x)$, with no normalization. A Boolean inverse $f$ would give
+$$
+  2^d f(x)=H_\sigma(x)+P(x),\qquad
+  P(x)=\sum_S \sigma(S)(A_S-1)\chi_S(x),\quad \deg P\le k .
+$$
+Let $a$ be the exponent of the largest power of two dividing every $H_\sigma(x)$. Then
+$$
+ t\le a\le k+\log_2 u_k<n/2
+$$
+for all sufficiently large $k$, for both floor sizes. The first inequality follows by reduction modulo $2^t$. For the second, fix an upper-shell $R$ with increment $u_k$ in absolute value. At least one such pair remains by the choice of the lower power. On every $R$-face the alternating sum of $P$ equals $\pm2^ku_k$, since no other supported monomial contains $R$. Hence $2^{\min(a,d)}\mid 2^ku_k$. Since $k+\log_2 u_k\le d+k-\tfrac12\log_2 M_k<n/2\le d$ for large $k$, this proves the bound. In fact some $H_\sigma$ on **each** such face fails divisibility by $2^{k+1}u_k$. A plateaued phase has constant nonzero Walsh magnitude $2^j$ with $j\ge n/2$, by integer Parseval. Thus this excludes every plateaued residue phase, including every quadratic phase and its linear recodings. At $k=4$ the upper bound on $a$ is already six, compared with eight for bent phases. Nine alternating integer-WHT projections started from a bent and a cubic phase yielded genuine tagged Boolean gates with $B$ in $[.7671583,.7671584]$ and $[.7820097,.7820098]$ respectively. Neither reconstructed the prescribed squared law. [Dual divisibility, face tests and Boolean projections](scripts/max3_phases.py)
+
+There is a separate obstruction to a coded lookup realizing these magnitudes. Suppose a core function is affine as a sign on every coset of an $r$-dimensional physical subspace $V$, with the affine function allowed to depend on the coset. Let $\pi$ restrict frequencies to $V$. For any function,
+$$
+ \sum_{\lambda\in V^*}\max_{\pi S=\lambda}|a_S|
+ \le\mathbb E_{\text{cosets }Y}\|\widehat{f|_Y}\|_1 .
+$$
+Each full coefficient is a signed average of partial coefficients at the same $\lambda$. For an affine sign the fiber norm is one. Among the core frequency basis vectors, choose $r$ whose images are independent. Their $k$-subsets give $\binom rk$ different labels, each containing an upper-shell amplitude of magnitude at least $(u_k-1)2^{-d}\ge1/(8\sqrt{M_k})$ for large $k$. Hence $\binom rk\le8\sqrt{\binom nk}$ and $r=O(\sqrt{nk})=O(k^{3/2})$. This excludes a linear address/data split with a positive fraction of the $k^2$ coordinates entering affinely, in **any** linear basis. At $k=256$ the exact amplitude bound gives $r\le2637$ out of 65,536 core coordinates. The same inequality lower-bounds the mean fiber spectral norm for nonlinear data. [Partial-transform and dimension checks](scripts/max3_phases.py)
+
+### Linear coding of data in symmetric and composed gates
+
+We use the following inverse-degree surprise estimate for a spectral law. Write $s(S)=-\log_2 p_S$ on its support and put $U=\sum_{K>0}p_S s(S)^2/K$. For any law on subsets,
+$$
+ \sqrt{P_2}\le\sqrt U+\sqrt{2I}/\ln 2. \tag{1}
+$$
+Indeed, expose membership bits in a fixed order. On present bits let $h_i$ be minus the log of the conditional presence probability given the prefix. Then $\sum_{i\in S}h_i\le s(S)$. Summing over the full outside of bit $i$ gives $\mathbb E[\mathbf1_{i\in S}2^{\ell_i-h_i}]\le\Pr(i\in S)$, as the outside marginal times the prefix presence probability sums to that marginal presence probability. Markov and integration give $\mathbb E\sum_{i\in S}(\ell_i-h_i)_+^2\le2I/(\ln2)^2$. Apply Cauchy–Schwarz on each set and the triangle inequality. This argument allows arbitrary recodings of the support.
+
+**Coded block symmetry.** Suppose a Boolean sign is symmetric within $r$ nonempty blocks. Substitute independent signed parity forms for all inputs, and optionally multiply the output by any character. In the resulting coordinates, uniformly in the block sizes, the number of physical bits and the recoding,
+$$
+ P_2\le\left[\sqrt{4352r}\,(17/\ln2+1)+2r+\sqrt{20}+2\sqrt2/\ln2\right]^2 I. \tag{2}
+$$
+Here independence means full row rank over $\mathbb F_2$. The spectrum undergoes an injective affine map and its probabilities are permuted onto its image. Native coordinate symmetry need not survive in the resulting truth table.
+
+For the proof let $W_{\mathbf k}$ be the native masses at block counts $\mathbf k$. Within each profile the native spectrum is uniform. In a native block of length $l$ put $j=\min(k,l-k)$, $J=\sum W_{\mathbf k}j$ and $Q=\sum W_{\mathbf k}k(l-k)$. The estimate uses degree measured from either end of the block,
+$$
+ \sum_{\mathbf k:j>0} W_{\mathbf k} j\log_2^2(el/j)\le (17/\ln2)^2 J. \tag{3}
+$$
+For $l\ge2$ take the half-difference $D=(f(x)-f(x+e_u+e_v))/2$ for a pair in this block. Its Fourier multiplier selects exactly one of $u,v$. Noise the other $l-2$ bits of the block by keeping each with probability $\rho$. With $b$ refreshed fair bits, $D$ vanishes when the two specified bits differ. When they agree, its conditional expectation is at most the total variation between a binomial $(b,1/2)$ and its translate by two, at most $2/\sqrt{1+b}$ by unimodality. Since $|D|=D^2$, summing the noise correlations over pairs and using $\mathbb E[(1+b)^{-1}]\le1/((l-1)(1-\rho))$ gives
+$$
+ \sum_{0<k<l} k(l-k)W_{\mathbf k}\rho^{k-1}
+ \le 2Q/\sqrt{(l-1)(1-\rho)} .
+$$
+Multiplication by the parity of this whole block interchanges $k$ and $l-k$ and preserves symmetry and $Q$. Take $\rho=1-1/d$ for integer $d\ge1$ and use both orientations, with $(l/2)j\le k(l-k)\le lj$. Under the $jW/J$ law this gives $\Pr(j\le d)\le32\sqrt{d/l}$, with $d=1$ following from the surviving $k=1$ term. Integration gives $\mathbb E\ln^2(l/j)\le256$, proving (3). Blocks with $J=0$ contribute zero.
+
+Select a full-rank square minor of the affine injection's linear part. Expanding its determinant by the native column blocks partitions its output rows into disjoint sets, one per block, with invertible square submatrices on their own block. Conditional on all other native bits and the profile, the $l$ selected output bits for a block thus distinguish its $\binom lj$ equiprobable points. For $j\ge1$ the chance of output weight at most $j/32$ on these rows is at most
+$$
+ \frac{\sum_{a\le j/32}\binom la}{\binom lj}\le2^{-j/2}.
+$$
+For $j<32$ the numerator is one. Otherwise bound it by $(32el/j)^{j/32}$ via the binomial generating function and use $\binom lj\ge(l/j)^j$, $l/j\ge2$. It follows that the selected rows have mean weight at least $j/128$. The entire output weight $K'$ has $\mathbb E[\mathbf1_{K'>0}/K'\mid\mathbf k]\le34/j$ for each positive $j$, interpreting the integrand as zero at zero. By disjointness $\sum_b J_b\le128I$.
+
+For completeness, the possible bias costs a universal amount. If the rarer output sign has measure $\delta>0$, put $d=\log_2(1/\delta)$ and $q_S=\widehat{\mathbf1_E}(S)^2/\delta$. Bonami–Beckner at noise $1/\sqrt2$ gives $\mathbb E_q 2^{-K'}\le2^{-d/3}$. Hence $\mathbb E_q[\mathbf1_{K'>0}/K']\le6/d+2^{-d/6}\le10/d$. Writing $v=\Pr_p(K'>0)=4\delta(1-\delta)\ge\delta$, nonempty masses are $4\delta q_S$. Edge isoperimetry gives $2\delta d\le I$, so the squared contribution of the constant surprise $\log_2(1/v)$ to $U$ is $\le20I$. Constant signs satisfy (2) directly.
+
+Let $W'$ be the law of the native profile conditional on $K'>0$. Its unconditional mass satisfies $W\ge vW'$. The profile weights $q(\mathbf k)=2^{-2r-\sum_b j_b}$ sum to at most one since there are at most two choices of $k_b$ for each $j_b$. Thus $(\log_2(q/W'))_+$ has conditional second moment at most $2/(\ln2)^2$. The entire surprise is $\log_2(1/W)+\sum_b\log_2\binom{l_b}{j_b}$. Bound the first term by $\log_2(1/v)+2r+\sum_bj_b+(\log_2(q/W'))_+$. For the binomial terms, Cauchy–Schwarz across blocks, the reciprocal bound and (3) give squared cost at most $34r(17/\ln2)^2\sum_bJ_b$. The $\sum_b j_b$ term costs at most $34r\sum_bJ_b$. Combine in $L^2(p\mathbf1_{K'>0}/K')$, using $v\le I$, then use (1). This yields exactly (2). [Pair-derivative noise, profile, pivot-volume and recoded WHT checks](scripts/max3_symmetry.py)
+
+This includes a symmetric function of an arbitrarily long list of parity inputs with **bounded linear redundancy** $t$. Choose a basis from the list and absorb its signs in the free coordinates. The $t$ dependent forms are affine in those coordinates. Group the free coordinates by their column patterns in the $t$ forms and their original block, obtaining at most $r2^t$ symmetry blocks. A translation on the independent inputs only changes Walsh signs. Apply (2) with the new block count. Unbounded redundancy permits even an arbitrary Boolean gate as a threshold of a multiset of signed parities, by clearing denominators in its Walsh expansion, duplicating terms, and absorbing its constant term in the threshold. Uniformity in $t$ for that entire class would require a global result. [Dependent parity threshold tests](scripts/max3_symmetry.py)
+
+**Linearly recoded disjoint gate towers.** Fix a finite alphabet of noncharacter balanced gates. Take any full, uniform-depth tree of disjoint substitutions from this alphabet, with gates allowed to vary from node to node. Allow arbitrary invertible linear changes of the leaf variables at each subtree prior to its use, input translations, and a final output character. Then $P_2\le C_{\rm alphabet} I$ independently of depth and of the linear maps. Changes on disjoint child domains form a block diagonal leaf transformation. Composition with the parent's change gives a single leaf transformation at the root. A bounded-arity linear recoding of a local gate can also be included in the finite alphabet. Reuse of overlapping child domains is a separate operation.
+
+Let $b$ be the maximum arity, $q<1$ the largest spectral atom of any gate, $L$ the maximum nonzero atom surprise and $\lambda=\min I(g)>1$. The last strict inequality follows since a balanced gate with $I=1$ is supported at level one, and squaring a degree-one sign forces all products of distinct linear coefficients to vanish. A frequency sample follows a tree in which each active gate independently chooses its active children with its own spectral law. Every active node has a child by balance. The final set therefore determines the genealogy, with probability equal to the product of the local masses. Let $Z_l$ count the nodes at level $l$, $M=Z_{D-1}$ the number of bottom gates and $V=\sum_{l<D} Z_l$. The surprise is at most $LV$.
+
+Conditional on the genealogy above the bottom, there are $M$ independent final samples with largest joint atom at most $q^M$. They occupy a native linear coordinate space of dimension at most $bM$. Select a full-rank output projection on that space. A Hamming ball of radius $cM$ in this projection contains at most $2^{bM h_2(c/b)}$ possible samples, even after an affine shift. Choose $c>0$ so small that $2^{b h_2(c/b)}\le q^{-1/2}$. Then $\Pr(K'\le cM\mid{\rm genealogy})\le q^{M/2}$. It follows that $\mathbb E[K'\mid{\rm genealogy}]\ge c(1-\sqrt q)M$ and $\mathbb E[\mathbf1_{K'>0}/K'\mid{\rm genealogy}]\le C_q/M$, since $Mq^{M/2}$ is bounded. Also $Z_l\le M$ pointwise and $\mathbb E Z_{l+1}\ge\lambda\mathbb E Z_l$. Minkowski gives
+$$
+ \|V/\sqrt M\|_2\le\sum_{l<D}\sqrt{\mathbb E Z_l}
+ \le \sqrt{\mathbb E M}/(1-\lambda^{-1/2}).
+$$
+Together these bound $U/I$ and (1) proves the assertion. For the recoded five-bit bent-times-dictator gate used at both levels, a shear crossing the five data blocks gives $I=13/2$ and $U/I\in[5.03958362,5.03958363]$ on 25 bits by exact convolution. Mixed three/five-bit towers also admit a complete truth-table WHT and agree with the factorization. The constants depend on the alphabet. [Tower verifier](scripts/max3_towers.py)
+
+**Reversible routing on the same data.** At each fresh address bit choose one of two invertible linear maps on the same data coordinates, then evaluate a fixed base sign. Track the distinct Boolean truth tables produced by partial compositions in application order, where the next step composes the current table with one of two maps on the right. The possible states are permuted by each map on the whole finite orbit. If the final number of reachable distinct states is $w$, the support size is nondecreasing. Its minimum positive probability can halve only on a strict increase. At an equal-size step each of the two branches maps onto the new support, so every resulting state has probability at least the preceding minimum. Thus every reached state has probability at least $2^{1-w}$. Let $\delta$ be the least positive disagreement distance between the relevant distinct states (including the two successors of each query), and $\alpha$ the least positive final-state data-bit influence. Omit an empty minimum. Future common maps preserve Hamming distance. Every active query or data bit has influence at least $\eta=2^{1-w}\min(\delta,\alpha)$. For any coordinate under its own marked-incidence law, $\mathbb E2^{\ell_i}\le1/I_i$ by summing each outside marginal once. Integrating the positive tail above $\log_2(1/\eta)$ and applying Cauchy–Schwarz on each set gives
+$$
+ P_2/I\le\big(\log_2(1/\eta)+\sqrt2/\ln2\big)^2 .
+$$
+For a base sign of algebraic degree at most $b$ over $\mathbb F_2$, one can take $\delta\ge 2^{-b}$ and $\alpha\ge2^{1-b}$ whenever positive. The difference polynomials have degrees at most $b$ and $b-1$ respectively. A nonzero multilinear bit polynomial of degree $d$ is nonzero on at least $2^{-d}$ of the cube by induction on a variable in a leading monomial. Thus bounded-width programs of bounded algebraic degree allow arbitrarily many stages of actual data reuse. At depths $2,5,9$ the tested controlled shears of the five-bit quadratic gate had $4,12,128$ reachable states and $X/I$ respectively in $[.19631945,.19631946]$, $[.07900021,.07900022]$, and $[.13660120,.13660121]$. [Shared-data programs and exact marginal checks](scripts/max3_codes.py)
+
+**Code-shell searches.** For $v\in\mathbb F_2^n$, the directional influence is $\alpha(v)=(1-\sum_S p_S\chi_S(v))/2$. The least possible influence over all invertible input recodings is the sum of a minimum-weight binary linear basis with these costs, computable exactly by greedy elimination. A character modulation can replace $\alpha(v)$ by $1-\alpha(v)$. Optimizing even this choice independently on each basis vector gives a lower bound for the balanced-only search. For a unate function and $v_i=1$, pairing $x$ with $x+v$ gives $|\hat f(\{i\})|\le\alpha(v)$. Unateness gives $|\hat f(\{i\})|=I_i(f)$. Every invertible basis matrix has a nonzero permutation term in its determinant, so its cost is at least the original $I$. In particular, unmodulated linear changes of inputs cannot improve the ordinary entropy ratio of the monotone seed.
+
+For the binary Hamming $[7,4,3]$, BCH $[15,7,5]$, and Reed–Muller $\mathrm{RM}(1,4),\mathrm{RM}(2,4)$ codes, we searched every output sign depending on codeword weight, every balancing character on the **message bits**, and every invertible change of message basis. Here the objective was the amplified score $H/(I-1)$ of a balanced noncharacter gate. The joint maximum was in $[4.697291787712,4.697291787713]$, attained for a BCH gate with minimized $I=25/16$. Safe interval pruning is used only for this score. For $B$ and $X/I$ we separately evaluated all 26,040 balanced presentations from nonconstant Hamming code weight patterns modulo negation and coordinate permutation, including repeated functions. Constant weight patterns add only characters with zero losses. The respective maxima are in $[.998199172,.998199173]$ and $[.183219559,.183219560]$. The direct objectives on the other codes were tested on selected recodings only. [Exact influence optimization](scripts/max3_codes.py) · [Direct deletion-odds search](scripts/max3_code_odds.py)
+
+**A uniform bound with all address and data bits recoded together.** Partition address space into disjoint affine cells $C_j$ of codimensions $r_j$. On cell $j$ return $(-1)^{Q_j(x)}\chi_{\lambda_j}(y)$, where $Q_j$ is quadratic on that cell and the labels $\lambda_j$ are distinct arbitrary parities of the same data bits. After any full-rank linear substitution mixing address and data, and any output character, **$P_2<60I$ for every nonconstant resulting gate**. This includes multiple adaptive stages of affine address queries compiled into such a leaf partition. It allows different quadratics on the leaves and arbitrarily many dense, linearly dependent data labels. Distinctness of the final labels prevents coherent addition between cells.
+
+To prove it, the native frequency piece for cell $j$ is selected with probability $2^{-r_j}$ and is uniform on an affine flat of dimension $d_j=r_j+q_j$, where $q_j$ is the rank of the quadratic polar form on the cell's tangent space. Indeed the squared transform of a quadratic sign on a vector space is $2^{-q_j}$ on a coset of the radical's annihilator and zero elsewhere, by summing first over the difference of two physical arguments. Extending from the cell adds its $r_j$ annihilator directions. Distinct labels keep the pieces disjoint, and affine frequency injection preserves each dimension. On the recoded flat, choose $d_j$ pivot coordinates. Their values are independent fair bits, so the output degree $K'$ dominates $D\sim\operatorname{Bin}(d_j,1/2)$ pointwise in this coupling. Then $\mathbf1_{K'>0}/K'\le 2/(1+D)$ with the quotient set to zero at zero. Its expectation is at most $4/(d_j+1)$. The surprise on this piece is $d_j+r_j\le 2d_j$. Consequently $U\le16\mathbb E d_j\le32I$, and (1) gives $P_2\le(\sqrt{32}+\sqrt2/\ln2)^2 I<60I$. This same proof applies to any disjoint affine-flat mixture whose piece of dimension $d$ has mass at least $2^{-d}$. It tolerates the equal-influence jump in $X$ from the five-bit example. [Full mixed-coordinate WHT and flat-by-flat checks](scripts/max3_towers.py)
+
+### Peeling affine cells with a controlled tail
+
+Suppose the rarer sign event $E$ of measure $0<\mu\le1/2$ is a disjoint union of affine subspaces of arbitrary orientations. Let $E_m$ be the union of its cells of codimension $>m$ and $\tau_m=\Pr(E_m)$. Then
+$$
+ U\le1280\sum_{m\ge0}(2m+1)\frac{\tau_m}{1+\log_2(1/\tau_m)}, \tag{4}
+$$
+with zero summands for empty tails. In particular, a presentation satisfying $\tau_m\le2^{-\gamma m}$, $0<\gamma\le1$, gives $P_2/I=O(\gamma^{-2})$ under arbitrary invertible physical recodings. This allows different orientations, unbounded codimensions and an unbounded number of cells. Closely related entropy estimates for one-sided affine certificates and weighted affine decompositions are due to Paraashar and Saurabh. Equation (4) controls the inverse-degree-weighted square of the surprise. [Paraashar–Saurabh, Theorems 4.1–4.3](https://arxiv.org/html/2611.06451v1)
+
+Indeed, the coefficients of $\mathbf1_{E\setminus E_m}$ lie on $2^{-m}\mathbb Z$, since each affine indicator has coefficients zero or $\pm2^{-c}$ for its codimension $c$. If $b_S=\widehat{\mathbf1_E}(S)$ satisfies $0<|b_S|\le2^{-m-1}$, its distance to this grid is $|b_S|$, at most $|\widehat{\mathbf1_{E_m}}(S)|$. The inverse-degree noise estimate used in (2) bounds the sum of $b_S^2/K$ on these nonempty frequencies by $10\tau_m/\log_2(1/\tau_m)$. For $x=\log_2(1/|b_S|)\ge1$, $x^2\le4\sum_{m+1\le x}(2m+1)$. Sum this inequality with $p_S=4b_S^2$, $s(S)=2x-2$, and use $\tau_m\le1/2$ to obtain (4). Under the exponential tail, $(m+1)/(1+\log_2(1/\tau_m))\le1/\gamma$ and $\sum_m\tau_m\le\mu(\log_2(1/\mu)+3)/\gamma$ by splitting the geometric series at $\log_2(1/\mu)/\gamma$. Finish with $I\ge2\mu\log_2(1/\mu)$ and (1).
+
+The tail hypothesis cannot hold with fixed $\gamma$ for every Boolean sign even after choosing the best one-sided affine partition. Every affine subspace of dimension $s$ contains a word of weight at least $s$ and one of weight at most $n-s$, by setting its $s$ free coordinates to all ones or all zeros. Either monochromatic side of odd majority therefore requires codimension at least $(n+1)/2$ in every cell. Its $\tau_m=1/2$ for $m<(n+1)/2$ makes the sum on the right of (4) grow at least quadratically in $n$, although its influence is $\Theta(\sqrt n)$. [Affine cell decomposition, shear and majority checks](scripts/max3_peeling.py)
+
+### A signed restriction identity and the Round 4 target
+
+For a dyadic step $h=2^{-m}$ let $r_h(u)=\operatorname{dist}(u,h\mathbb Z)$ and set
+$$
+ G(f)=\sum_{m\ge0}\sum_S r_{2^{-m}}(a_S)^2.
+$$
+This sum terminates on a finite Boolean cube. For $0<|u|\le1$ put $x=\log_2(1/|u|)$. The first $\lfloor x\rfloor$ terms equal $u^2$, and the remaining sum is at most $4u^2/3$ by the geometric series of squared half-steps. Thus the nonempty-frequency contribution is between $H_{\ne\emptyset}/2-v$ and $H_{\ne\emptyset}/2+4v/3$, where $v=1-p_\emptyset\le I$. For the empty coefficient, all grids contain $1$, so its error equals that of $s=1-|a_\emptyset|\le v$. Its total is at most $s^2(\log_2(1/s)+4/3)\le2v$ by continuity at zero. The empty entropy satisfies $-p_\emptyset\log_2 p_\emptyset\le v/\ln2$. In particular
+$$
+ H/2-2I\ \le\ G(f)\ \le\ H/2+10I/3. \tag{5}
+$$
+
+At a query $i$, let $u=a_T$, $v_i=a_{T+i}$ for $T$ in the remaining variables. The two restrictions have normalized coefficients $u+v_i,u-v_i$. The loss in grid energy is the sum over $T,h$ of
+$$
+ c_h(u,v_i)=r_h(u)^2+r_h(v_i)^2-
+    \tfrac12\{r_h(u+v_i)^2+r_h(u-v_i)^2\}.
+$$
+It is nonnegative. The first two errors are half the optimal sum of squared errors on $u+v_i,u-v_i$ when the two rounded grid numerators must have the same parity, by the parallelogram identity. The remaining terms are the unrestricted optimum. If the nearest integers have the same parity the cost is zero. Otherwise the cheaper parity change costs
+$$
+ c_h=\tfrac h2\left(h-2\max\{r_h(u+v_i),r_h(u-v_i)\}\right).
+$$
+A tie costs zero. When $h>4|v_i|$, there is a positive cost only if the segment from $u-v_i$ to $u+v_i$ straddles a grid midpoint, and the formula simplifies to
+$$
+ c_h=h\big(|v_i|-\operatorname{dist}(u,h(\mathbb Z+\tfrac12))\big)_+ . \tag{6}
+$$
+Indeed the segment then contains at most one midpoint, with the more distant grid residual equal to $h/2$ minus the nearer endpoint's distance to the midpoint. **At most one** such dyadic $h$ contributes for a given pair. Midpoints at two distinct dyadic scales differ by at least half the smaller step, which exceeds $2|v_i|$. Every other scale is covered by
+$$
+ \sum_{h\le4|v_i|}c_h\le\sum_{h\le4|v_i|}h^2/2\le(32/3)v_i^2 .
+$$
+
+On any full coordinate-restriction tree $\mathcal T$, let $R_{\mathcal T}(f)$ sum (6) over the queried pairs with $h>4|v_i|$, weighting each node by its probability of being reached. At leaves the grid potential vanishes. The queried influences telescope to $I(f)$ because restriction on $i$ preserves, on average, every other bit's influence. Therefore
+$$
+ 0\le G(f)-R_{\mathcal T}(f)\le(32/3)I(f),\qquad
+ R_{\mathcal T}-10I/3\le H/2\le R_{\mathcal T}+38I/3 . \tag{7}
+$$
+This is a signed Walsh reformulation with an explicit error and a single possible coarse scale per pair. It holds for every order. The code checks exact potential drops and complete tree sums for fixed, random and adaptively chosen orders. For example, on one ten-bit truth table $G=17563/4096$, $I=1267/256$, and the fixed-order coarse sum is $279/1024$. [Integer nearest-grid and tree tests](scripts/max3_carries.py)
+
+**Why the bound must allow amortization.** Take $n\ge4$ even, $N=2^n$, and $b(x)=(-1)^{x_1x_2+\cdots+x_{n-1}x_n}$. In the half $x_1=1$ keep $b(x)$. At each of the $N/2$ points $x_1=0$ return a distinct data sign $y_x$. Multiply by an independent tag to balance. On the empty data slice the amplitudes are those of $b\mathbf1_{x_1=1}$, zero at half the core frequencies and $\pm N^{-1/2}$ at the others, by the two-point difference of the bent transform. Each one-data-bit slice has all amplitudes of magnitude $1/N$. There are no larger data slices. Thus $H=3n/2$ and $G=3n/4$. Each data-bit influence is $1/N$. The core directions cost $1/2$ each except for bit $2$, which costs $3/4$ since it always flips $b$ on the retained half. With the tag, $I=n/2+7/4$.
+
+For **each** data query the nonzero empty-data amplitudes are midpoints at step $h=2/\sqrt N>4/N$. Formula (6) gives total coarse cost exactly $1/\sqrt N$ at the root for that coordinate. Consequently summing over the potential data queries already costs $\sqrt N/2$, exponentially larger than $I$. This refutes both a uniform per-query bound proportional to its influence and a per-node bound on the sum over all candidate queries proportional to total influence. Equation (7) still gives $R_{\mathcal T}\le3n/4$ on any actual tree. In particular, with $n=16$ the root sum just over data queries is $128$, while $I=39/4$ and $G=12$. Along a fixed order of data queries the parent numerator at a given frequency acquires independent unit Rademacher increments, which explains why the initial midpoint charge cannot be reused at every stage. On the smaller single-selector bent switch the distinguished coarse-cost/influence ratio is $2^{n/2}$ as well. [Sparse WHT, dense reconstruction and exact binomial path sums](scripts/max3_selectors.py) · [Single-selector test](scripts/max3_carries.py)
+
+**Even the accumulated influence of a whole query prefix can be insufficient.** Query all $M=N/2$ data bits first in any fixed order. Each still has influence $1/N$ when queried, since the address row it controls is untouched. Their total queried influence is exactly $1/2$. Yet their accumulated coarse cost satisfies
+$$
+ n/4-4/3\le R_{\rm data}\le n/4+8/3 .
+$$
+To verify this, use integer numerator units and write $H$ for an integer dyadic step from $8$ through $N$ in this paragraph. At a uniform core frequency let the initial parent be $s\in\{0,\pm\sqrt N\}$ with $\Pr(s=0)=1/2$. After the $M$ queries its law is $Y=s+W_M$, where $W_M$ is a simple symmetric walk independent of $s$ in law. Telescoping that single scale over the prefix gives its exact contribution
+$$
+ R_H=M/N+N^{-1}\mathbb E\big[r_H(s)^2-r_H(Y)^2\big].
+$$
+All scales in this sum are coarse for the queried coefficient $1/N$. For $H\le\sqrt N$, the initial residue vanishes. Each of these $n/2-2$ scales contributes between $1/2-H^2/(4N)$ and $1/2$, with total error at most $1/3$. For $H\ge2\sqrt N$, $r_H(s)^2=s^2$. Since $\mathbb E(Y^2-s^2)=M$, we obtain $R_H\le N^{-1}\mathbb E[Y^2\mathbf1_{|Y|\ge H/2}]\le 4\mathbb E Y^4/(NH^2)$. The fourth moment is $11N^2/4-N$ by the Rademacher fourth moment, giving at most $11/3$ summed over the larger steps. These estimates prove the bounds. The verifier independently computes the cost by visiting probabilities at each query and by this endpoint formula. [Exact selector-prefix checks](scripts/max3_selectors.py)
+
+**Single target for Round 4 of 5.** Prove or refute $R_{\mathcal T}(f)\le K I(f)$ for the fixed reveal order $1,\ldots,n$. Equation (7) makes this sufficient and necessary for FEI. The quantitative question is how often the successive partial Walsh coefficients on one restriction path can approach a dyadic midpoint within the next increment, weighted by the height and penetration in (6). For each fixed surviving frequency those coefficients form a martingale up to the first query in that frequency. The prefix example forces the charge to use influence from still-unqueried coordinates. It also gives an exact test of any proposed amortization before tackling general Boolean terminal truth tables.
+
+**Verification.** Run each of the ten linked Round 3 Python scripts directly with Python 3 and NumPy. Integer transforms check Parseval and physical edge counts where dense truth tables are used. Larger instances use the stated exact recurrences or multiplicities. Six new Lean lemmas prove nearest-grid optimality, nonnegativity and a per-scale upper bound for the restriction drop, the squared half-step bound, the finite signed-grid variance bound, and the scalar defect-bound absorption. The full mathematical estimates above are in this report. The project builds with Lean 4.36.0. The frozen challenge's SHA-256 is **6bd49da1bc4ada83635a00f9c4957aa4a8e42ae74cc570b1e8ceaabab8d6634b**. [Lean lemmas](FEI/ResearchLemmas.lean)
+
 ## MAX Round 2 · 26 November 2026
 
 **Case C. Whether $\sup_{g\ {\rm balanced}}B(g)$ is finite remains open in this investigation.** We obtained a dimension-independent bound for the contribution of every fixed range of degrees to $B$, a bound $X<78I$ for all nonconstant symmetric Boolean functions, and an additive bound for repeated lookups with shared linear address bits. We also constructed a sequence of dyadic unit Walsh vectors with divergent $B$ and $X/I$. A signed congruence on one affine flat excludes **every** Boolean signing of these vectors. This exposes a gap in a proof using unsigned affine mass tests. The best certified ordinary $H/I$ witness here remains the Round 1 interval $[6.5218511673478223969022,6.5218511673478223969023]$.
