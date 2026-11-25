@@ -1,1 +1,1 @@
-import CatchUpGame.Challenge
+import CatchUpGame.ResearchLemmas
