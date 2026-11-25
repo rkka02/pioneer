@@ -1,1 +1,1 @@
-import TxGraffiti3.Challenge
+import TxGraffiti3.Solution
