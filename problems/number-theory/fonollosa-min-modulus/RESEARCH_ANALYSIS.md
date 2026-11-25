@@ -188,3 +188,212 @@ clang++ -std=c++17 -O3 -march=native scripts/quotient_census.cpp -o /tmp/fonollo
 ```
 
 Lean 4.36.0 builds the package with the research file imported by the root module. The 20 audited declarations use only `propext`, `Classical.choice`, and `Quot.sound`. The local Lean files contain zero occurrences of `sorry`, `admit`, or `native_decide`. Lake emits module-format warnings because the frozen challenge uses legacy imports and the research file imports that challenge. The SHA-256 of the frozen source at the start and end of the round was `3a275f872e63da865d3636a81abd5d9065e75716389f450564d42515666d1d91`.
+
+## Round 2
+
+**Case C.** Every valid cyclic $n$-set with $n\ge3$ satisfies
+
+$$
+                         N \ge \frac{9}{16}2^n .
+$$
+
+The proof is in Lean. The coefficient stays strictly above $1/2$ as $n\to\infty$. It improves Sitjar’s general bound for every $n\ge10$. At ten elements it gives 576, up from 569. An exchange enumeration and direct searches together rule out every ten-set through **613**, giving the unrestricted bound **$N\ge614$**. The known construction has modulus 1016. The gap between these statements remains open. [Sitjar, Theorem A](https://www.alphaxiv.org/abs/2611.fonollosa-minimum-modulus-conjecture.pdf) · [Fonollosa, Theorem A and Conjecture 1](https://arxiv.org/html/2607.08366v2)
+
+### A fixed-factor cyclic lower bound
+
+Fix pivots $a,b$, let $d=b-a$, $R=A\setminus\{a,b\}$, $r=n-2$, and write $F(S)=\sum_{x\in S}(x-a)$. Define $E_R(g)$ as the number of subsets $S\subseteq R$ admitting a $T\subseteq R$ with $|T|=|S|$ and $\sum T=\sum S+g$. Equal-rank subset sums on $R$ are injective, so each such $S$ has a unique mate.
+
+For each $S\subseteq R$, place five labels $i=0,1,2,3,4$ in $\mathbb Z/N\times\{0,1\}$ using the map
+
+$$
+ (S,i)\longmapsto
+ \left(F(S)+\left\lfloor\frac{i-|S|}{2}\right\rfloor d,\quad
+                      (i-|S|)\bmod 2\right).
+$$
+
+For a coincidence of $(S,i)$ and $(T,j)$, put $w=|S|-|T|$. Equality of the second coordinates makes $J=(j-i+w)/2$ integral, and equality of the first gives $F(S)-F(T)=Jd$. Equation (1) forces $S=T$ if $\min(0,w)-1\le J\le\max(0,w)+1$. The only exceptions for these five labels have $w=0$ and $\{i,j\}=\{0,4\}$. Within the interval, $S=T$ leaves $J\in\{-1,0,1\}$ and $Jd=0$, so $i=j$. In the exceptional case the label-4 source has an equal-rank mate at displacement $2d$. Deleting exactly those label-4 points leaves an injection. In particular,
+
+$$
+                     5\cdot 2^r \le 2N+E_R(2d). \tag{R2.1}
+$$
+
+To bound the loss in (R2.1), fix $g\ne0$. Removing common coordinates from a source and its mate gives an ordered pair $(D,C)$ of disjoint sets of the same positive size $t$, with $\sum C-\sum D=g$. Call it an exchange. It occurs at exactly $2^{r-2t}$ sources, those containing $D$ and avoiding $C$.
+
+Any two distinct exchanges satisfy **both** $D_i\cap C_j\ne\varnothing$ and $D_j\cap C_i\ne\varnothing$. Indeed the vector $1_{C_i}-1_{D_i}-1_{C_j}+1_{D_j}$ is balanced and has sum zero in the group. If $D_i\cap C_j$ were empty, all entries would be at least $-1$. Validity forces that vector to vanish, so the two exchanges would coincide. Interchanging the indices gives the other intersection.
+
+The following argument uses the Bollobás set-pair inequality. [Bollobás, *On generalized graphs*](https://doi.org/10.1007/BF01904851)
+
+Take a uniform random ordering of $R$. For an exchange of size $t$, the event that every point of $D$ precedes every point of $C$ has probability $1/\binom{2t}{t}$. The crossing property makes these events disjoint for different exchanges. Also $\binom{2t}{t}/4^t\le1/2$ for $t\ge1$, since the ratio of consecutive values is $(2t+1)/(2t+2)$. Summing their contributions gives
+
+$$
+ \frac{E_R(g)}{2^r}=\sum_{(D,C)}4^{-t}
+ \le \frac12\sum_{(D,C)}\binom{2t}{t}^{-1}\le \frac12. \tag{R2.2}
+$$
+
+Lean proves (R2.2) by a finite injection. For each source it constructs four distinct images in two copies of the cube. The first two keep the subset and select either tie order. The other two toggle the least or greatest point of $D\cup C$ and select the tie order that puts all of $D$ before all of $C$, sorting members of the output subset first. The crossing property recovers the exchange from the output, and the source is then $(W\setminus C)\cup D$, where $W$ is the output subset.
+
+For any pivot $a$, a cyclic group has at most one $b\ne a$ with $2(b-a)=0$. Thus $n\ge3$ supplies a pair with $2d\ne0$. Substituting (R2.2) in (R2.1) gives $9\cdot2^{n-2}\le4N$. The public Lean declarations are `RankPacking.equal_exchanges_cross`, `RankPacking.equal_rank_half`, `RankPacking.five_slots`, `RankPacking.nine_sixteenths_of_pivots`, and `RankPacking.cyclic_nine_sixteenths`, all in the `FonollosaMinModulus` namespace. [Lean source](FonollosaMinModulus/ResearchLemmas.lean)
+
+### What the one-pivot and pairwise relaxations miss
+
+- If $0,x\in A$ are distinct, $S,T\subseteq A\setminus\{0,x\}$ and $q x+\sum T=\sum S$ for $q\ge2$, the balancing coefficient at zero is $|S|-|T|-q$. A value at least $-1$ gives a forbidden signed relation. Hence a collision requires $|S|\le|T|+q-2$. In particular a doubled translate can meet only these ranks with $|S|\le|T|$. The valid binary ten-set at 1016 already contains $2\cdot3+1=7$ and $3\cdot1=3$. Consequently the union of doubled or tripled translates need not be disjoint from the anchored subset sums. The excess number of summands on the repeated side matters.
+- At the prime 521 take $A=\{0,1,2,4,\ldots,256\}$. Its anchored subset-sum image $U$ is exactly $\{0,\ldots,511\}$, $U-U$ is the whole group, and its autocorrelation has value 512 at zero and total $512^2$. These properties coexist with the forbidden midpoint $0+2=1+1$. Surjectivity of the difference set and these Fourier moment identities alone cannot give the desired floor. This example concerns those particular relaxations.
+- A relaxation assigning a fractional variable to each residue and each subset rank also loses the obstruction if it only imposes rank totals, pairwise forbidden-shift inequalities, and adjacent-site total capacity. At $N=569$ the uniform assignment $x_{z,k}=\binom8k/569$ has the right totals, satisfies each two-variable exclusion, and has adjacent total $512/569<1$. Inequality (R2.2) uses compatibility among entire exchanges.
+
+An independent Python program checked (R2.1), the exact five-label image size $5\cdot2^r-E_R(2d)$, and (R2.2) on every anchored valid set of sizes 3 through 5 with $3\le N\le28$. This covered 9,488 sets and 48,924 unordered pivot pairs. [Independent checks](scripts/round2_verify.py)
+
+### How much the two-pivot test detects
+
+The seven-set $\{0,1,3,63,75,91,115\}$ modulo 120 passes the anchored subset-sum injection at **every** pivot. All seven cubes have 64 different sums. Yet its total is $348$, and the multiset $(0,0,0,3,75,75,75)$ has total $228$. Both totals are $108\bmod120$, and $120<f(7)=124$. This also limits a Fourier approach based on Parseval identities for all the individual anchored cubes. The interval test catches the example at $a=0,b=75$, since $1+63+91+115\equiv2\cdot75\bmod120$.
+
+Lean proves an exact converse to (1) in `signed_zero_of_pivot_interval` for relations with at most two coefficients exceeding 1. Choose pivots $a,b$ including those coefficients. Among the other coordinates put $S=\{x:c_x=-1\}$ and $T=\{x:c_x=1\}$. Then $w=|S|-|T|=c_a+c_b$ and $F_a(S)-F_a(T)=c_b(b-a)$. Since $c_a,c_b\ge-1$, the integer $c_b$ lies in the forbidden interval in (1). If the interval test passes, $S=T$ and disjointness gives $S=T=\varnothing$. Balance now gives $c_a=-c_b\in\{-1,0,1\}$, and distinctness of the pivots forces both coefficients to vanish.
+
+For ten points, three coefficients at least 2 use at least six negative entries. Each negative entry is $-1$. Counting ten coordinates leaves just two possible multiplicity patterns for a nontrivial relation escaping the interval tests. With $\sigma=\sum A$, they are
+
+| Rival multiplicities, zeros omitted | Remaining modular test | Number of labeled choices |
+|---|---|---:|
+| $(3,3,3,1)$ | $\sigma=3(u+v+w)+x$, with $u,v,w,x$ distinct | 840 |
+| $(4,3,3)$ | $\sigma=3(u+v+w)+u$, with $u,v,w$ distinct | 360 |
+
+Thus all two-pivot intervals plus **1,200** scalar comparisons are an exact ten-set validity test. Equivalently the extra test is $\sigma\notin 3\Sigma_3(A)+A$, where $\Sigma_3(A)$ contains the sums of three distinct points and 3 denotes scalar multiplication. Lean also verifies the underlying bound on the number of multiplicities at least three in `triple_multiplicity_card_le`. The Python checker enumerates all $\binom{19}9=92{,}378$ multiplicity vectors, tests examples that pass every interval and fail each of the two exceptional patterns, and compares this characterization to direct multiset counts on the valid endpoint and 100 deterministic samples. [Structural verifier](scripts/round2_verify.py)
+
+### Exact finite reduction for ten points
+
+Write $\Delta=\{b-a:a,b\in A,\ a\ne b\}$. In the subthreshold range the antipodal result above gives $|\Delta|=90$. Indeed, equal differences give equal two-term sums. If either two-term sum is squarefree, its representation is unique by validity. The remaining possibility is equality of two doubles, which requires an antipodal pair. Of the elements of any cyclic group, at most $\sum_{j=1}^{16}\varphi(j)=80$ have order at most 16. Hence some $d\in\Delta$ has order greater than 16.
+
+For fixed pivots let $m_t$ count the exchanges of size $t$ for $g=2d$. On the eight other coordinates,
+$$
+ E_R(g)=64m_1+16m_2+4m_3+m_4. \tag{R2.3}
+$$
+There is at most one singleton exchange since the directed differences are distinct. There are at most $\gcd(2,N)$ exchanges covering the entire ground set because their target set satisfies $2\sum C=\sum R+g$ and its subset sum is injective at fixed rank. For $2g\ne0$, two size-two exchanges cannot use the same four coordinates. On that support their target pairs would either differ in one point, giving an antipodal pair, or be complements, giving $g=-g$.
+
+The following finite counting test runs on eight named coordinates, independently of $N$. It assumes distinct directed differences and $2g\ne0$. Rows represent exchanges by $v_i=1_{C_i}-1_{D_i}$. Two rows must cross and cannot be reverses. For up to six fixed rows the program also checks every integer choice $-2\le\lambda_i\le2$ with $\sum_i\lambda_i=0$, up to overall sign. If $\sum_i\lambda_i v_i$ is nonzero and either sign has every entry at least $-1$, validity rules out those rows. All arithmetic is exact. The maximum absolute entry of a tested linear combination is at most 12.
+
+The enumeration identifies families up to permutations of the rows and of the eight coordinates. Sorting the eight column vectors for every row permutation gives a complete orbit key. The numbers of orbits after choosing 0, 1, 2, 3, 4 size-two rows are **1, 1, 4, 10, 0**. Fixing one size-three row (two in the first table row) gives the following upper bounds. Remaining size-three rows are vertices, with an edge for pairwise compatibility in the presence of the fixed rows. Any realizable extension is a clique. A proper coloring bounds its size, and exact branching on vertices determines the clique maximum in each graph.
+
+| $m_2$ | Seeded orbits | First clique bound on $m_3$ | After checking all choices of seed |
+|---:|---:|---:|---:|
+| 0 | 15 | 16 | 14 |
+| 1 | 9 | 11 | 10 |
+| 2 | 61 | 6 | 6 |
+| 3 | 32 | 3 | 3 |
+
+For the last column, suppose a family contains $v$ size-three rows. Every choice of which one or two of those rows to fix initially must give a seed capable of attaining $v$. Delete candidate vertices or pairs violating that necessary condition and recompute the clique bound. The audit verifies upper bounds by a second search that branches on including or excluding a vertex and builds its independent color classes separately.
+
+If no singleton occurs, (R2.3) and the table give $E_R(g)\le62$ for even $N$ and $E_R(g)\le61$ for odd $N$. If a singleton $x\to y$ occurs, every other exchange must remove $y$ and insert $x$ by crossing. Deleting that pair from the other exchanges gives distinct exchanges for displacement $2g$ on the remaining coordinates. Thus $E_R(g)\le2^{r-2}+E_{R\setminus\{x,y\}}(2g)$.
+
+Apply this recursion to the pivot of order greater than 16. On six coordinates with no singleton, at most three size-two rows are possible by embedding in eight coordinates, and at most two full-support rows are possible, for a bound of 14. On four coordinates with no singleton the bound is one. With a singleton the four-coordinate bound becomes $4+1=5$. The order assumption keeps each doubled shift nonzero and excludes reversals where used. Therefore on eight coordinates $E_R(2d)\le\max(62,64+\max(14,16+5))=85$. Equation (R2.1) gives $2N\ge1195$, hence **$N\ge598$**.
+
+For each $598\le N\le609$, (R2.1) requires $E_R(2d)\ge1280-2N$ for **every** pair. This exceeds the relevant parity bound for a configuration without singletons. For every $d\in\Delta$ with $4d\ne0$, one must therefore have $2d\in\Delta$. This is a simultaneous condition on the directed differences.
+
+Write $N=hq$ with $h$ a power of two and $q$ odd. The differences divisible by $h$ project injectively to a set $H\subseteq\mathbb Z/q\setminus\{0\}$, invariant under negation and doubling. Every nonzero projected difference lies in $H$. Successive doublings enter the subgroup divisible by $h$, and doubling is a permutation of $H$. Write $c_j$ for occupancies of the classes modulo $h$. Then $|H|=\sum c_j(c_j-1)$. Each class is valid in a cyclic group of order $q$, giving $c_j\le1+\lfloor\log_2 q\rfloor$. The set must generate after translation since every proper subgroup has size $\le N/2<512$. For every divisor $p\mid q$, a class of size $c=pa+b$, $0\le b<p$, uses at least $(p-b)a(a-1)+ba(a+1)$ differences divisible by $p$. These counts must fit in $H$.
+
+The program enumerates all class-size partitions and all unions of $\langle-1,2\rangle$-orbits in the odd quotient. It also checks that the projected points can form a clique with differences in $H$. At most $\max(0,(h-2)/2)$ unordered pairs project to coincident points, since their distinct directed differences would lie in the kernel and could use neither zero nor an antipode. For $q>1$, at least two distinct projections are needed by generation. When $q$ has at most two distinct prime factors there is a unit difference in the projection. Otherwise every pair agrees modulo one of those primes. If two points disagree modulo the first prime, they agree modulo the second, and every third point must then also agree modulo the second. This contradicts generation. Scaling a unit difference to 1 preserves the orbit test.
+
+There is one more capacity constraint at a pivot in a class of size $c$. The other $c-1$ points of the class give groups of $2^{c-1}$ anchored sums in each occupied residue modulo $h$. Each residue can hold at most $q$ sums. Hence $2^{10-c}\le h\lfloor q/2^{c-1}\rfloor$. Equality requires the subset sums of the $10-c$ remaining projected points to be uniform modulo $h$. For each $1\le j\le\log_2 h$, evaluate their generating polynomial $\prod_x(1+z^{x-a})$ at a primitive $2^j$-th root of unity. Its value is zero, so some $x-a$ has 2-adic valuation $j-1$. This requires at least $\log_2 h$ distinct nonpivot classes.
+
+For $598\le N\le609$, nine moduli have no orbit union passing the initial size and normalization checks. The other three fail as follows.
+
+- At 600 four candidate unions fail the divisor counts.
+- At 608 the odd quotient has order 19. The only candidate has $|H|=18$, and the possible occupancy partitions are $(3,3,3,1)$, $(4,2,2,2)$, and $(4,3,1,1,1)$. Choosing a largest class gives equality in the capacity bound. Each partition has fewer than five other classes, and $\log_2 32=5$.
+- At 609 the only candidate of size 90 consists of the three orbits of 7, 21 and 87. Every difference is divisible by 3 or by 7. The two-coordinate argument above then forces a constant residue modulo 3 or 7, contradicting generation.
+
+At 610 or 611, the only way for a pivot with $4d\ne0$ to lack a singleton is to have **three size-two and three size-three exchanges**. All other rows of the refined table, and the three-double case with at most two triples, give less than the required $1280-2N$. There are 12 six-row profiles up to relabeling, using the same bounded signed-relation test. For each profile normalize $d$ to $\gcd(d,N)$ by unit multiplication. For the rows' active points, fix the first point at zero and form the integer matrix $M$ of the remaining coefficients. The equations are $Mx=2d\mathbf1\pmod N$. The program computes $D=UMV$ in Smith normal form, verifies this equation and $|\det U|=|\det V|=1$ over the integers, and enumerates every solution of the diagonal congruences. Distinct-difference and hereditary validity checks discard active sets that cannot occur. For a surviving eight-set $R$, test every translation in the completion $\{0,d\}\cup(t+R)$. Pivot differences of order three are already excluded in this range by the order-three bound.
+
+| $N$ | Relative solutions across profiles and normalized pivots | Passing active sets | Valid completions | Passing sets with unassigned coordinates |
+|---:|---:|---:|---:|---:|
+| 610 | 29,424 | 72 | 0 | 0 |
+| 611 | 7,350 | 0 | 0 | 0 |
+
+Consequently the doubling condition on $\Delta$ holds at 610 and 611 as well. Neither odd quotient admits an orbit union of the necessary size. This proves the unrestricted, computer-assisted ten-set lower bound **$N\ge612$**. The finite enumerations use Python integer arithmetic, bounded NumPy integer arrays, and exactly checked Smith transformations. The five-label inequality and the general $9/16$ bound have separate Lean proofs. [Exchange enumeration, quotient tests, and modular lifts](scripts/round2_profiles.py)
+
+### Direct ten-set searches
+
+The C++17 census fixes a difference whose gcd with $N$ is the least among all pairs and maps it to that gcd $g$ by an affine unit map. Any point between 0 and $g$ would give a smaller gcd. For $g=1$, choose the representation with the least sorted third residue $z$ among all ordered unit pairs. Screening every triple against this minimum is sound because each possible third point is at least the sorted third for its ordered pair. The full nonunit mode chooses, after $0,g$, the least point outside $p\mathbb Z/N$, where $p$ is the least prime factor of $g$. A generating set contains such a point. The solver also fixes the second such point when the subgroup cannot contain nine valid points. At $N=1008$, the sole nine-set orbit of order 504 gives at least two unit differences to every odd outlier upon doubling its points, as checked over all 504 odd residues. With $g=2$ the solver minimizes the first odd coordinate over all normalized pairs at gcd two. A triple giving a smaller value rules out that representation. All remaining coordinates are searched in increasing order, including those below the fixed witnesses.
+
+At a partial set $P$ of size $k$, the solver stores $R_j(P)$, the exact residues reachable by $j$ summands with repetition, for $0\le j\le10$. When adjoining $x$, a competitor for the enlarged set uses either zero copies of $x$, or $h=2,\ldots,k+1$ copies. One copy reduces to validity of $P$. The enlarged set is valid precisely when $\sum P+(1-h)x$ is absent from $R_{k+1-h}(P)$ for every competing $h$. Heredity permits pruning a failed partial set. A proper partial set with $R_{10}(P)=\mathbb Z/N$ cannot be extended. At depth eight a final target outside $R_{10}(P)$ fixes the sum of the last pair. The solver includes the order-three, antipodal, and cyclic coset capacity cuts from Round 1. The upper-modulus searches apply the capacity test to selected pivots. Every surviving leaf is checked by a scalar count of unordered multisets. [C++ search](scripts/round2_ten.cpp)
+
+| $N$ | Completed coverage | Shards | Valid ten-sets found |
+|---:|---|---:|---:|
+| 593 | All | 584 | 0 |
+| 598 | All, including nonunit differences | 3,720 | 0 |
+| 599 | All | 590 | 0 |
+| 601 | All | 592 | 0 |
+| 612 | All, combining the unit and nonunit runs | 603 + 8,751 | 0 |
+| 613 | All | 604 | 0 |
+| 1013 | Unit normalization, $z\ge24$ | 982 | 0 |
+| 1014 | Unit normalization, $z\ge192$ | 815 | 0 |
+| 1015 | Unit normalization, $z\ge27$ | 981 | 0 |
+| 1014 | All sets with no unit difference | All nonunit gcds | 0 |
+| 1015 | All sets with no unit difference | All nonunit gcds | 0 |
+
+The full searches at 593, 598, 599 and 601 provide independent checks of the exchange argument. At 612 the unit search discarded 1,280,496,089 nodes whose ten-term sums already covered the group. Together the complete 612 and 613 runs raise the continuous floor from 612 to **614**. At 1015 every surviving possibility has a unit difference and minimum third residue between 3 and 26 inclusive. A third residue of 2 would give a midpoint. The modulus as a whole remains open. At 1014, a larger run starting at third residue 80 stopped before exhausting its interval. The completed unit certificate there starts at 192.
+
+For a separate endpoint check, the Python verifier uses arbitrary-precision residue bitsets and counts representations up to two. It exhausted the $z\ge80$ unit branches of 1013. At 1013, 1014 and 1015 it also checked every increasing completion of $(0,1,3,120,161,265)$, giving zero valid leaves. The C++ solver checked that six-point prefix and the prefixes $(0,1,4,113,164,248)$ and $(0,1,5,85,119,126)$ at all three moduli. All nine input prefixes were themselves valid, so these are tests of genuine extension branches. Both verifiers recovered $(0,1,3,7,15,31,63,127,255,511)$ at 1016 from a proper prefix. [Independent Python verifier](scripts/round2_verify.py)
+
+Across **all 447 moduli** in $569\le N\le1015$, every valid ten-set must have a unit difference. For 281 moduli with at most two distinct prime factors this follows from generation and the two-coordinate argument. The C++ census exhausted the other 166, covering 1,256,319 nonunit shards with zero valid leaves. The cyclic coset capacity test discarded 191,987 partial sets in this run. A separate run using a sorted third coordinate exhausted all 36 odd moduli with at least three prime factors and also returned zero. Consequently the unit normalization $(0,1,\ldots)$ suffices throughout the remaining unrestricted search.
+
+There is a second check of the no-unit branch for six squarefree moduli. For a product of three primes, write each point as a triple of residues. If every difference is a nonunit, every pair agrees in a coordinate. A generating family of at least five points lies in the union of three coordinate lines through one center. To see this, choose two points differing in exactly two coordinates and let their common coordinate be the first. Points outside their first-coordinate plane must have one of the two crossed pairs of remaining coordinates. If both crossed pairs occur, those two outside points have to share their first coordinate, and the inside points have only the two original possibilities. That would give at most four points. If just one crossed pair occurs, the three lines follow. If no pair differs in exactly two coordinates, the family varies in at most one coordinate and cannot generate.
+
+After translating the center to zero and scaling each occupied axis to contain 1, enumerate valid axis subsets. For each axis keep the counts, saturated at two, of $k$-term multisets with the required local sum for $0\le k\le10$. Multiplying the three counts and summing over compatible lengths checks the CRT set, including an optional center. This found zero valid ten-sets without a unit difference at **935, 957, 969, 986, 1001 and 1015**. At 969 it tested 6,240 normalized combinations of internally valid blocks. At the other five moduli no such combination reached size ten. At 1015 the three axis orders are 5, 7 and 29. In particular the exhaustive line test found zero valid five-point blocks of order 29. [Independent CRT enumeration](scripts/round2_verify.py)
+
+### Counterexample search across construction families
+
+The C++ family search used every size $10\le n\le20$. For ordinary integer constructions it used $N=f(n)-\delta$ with $\delta=1,2,3,5,9,17$. The subgroup and CRT constructions chose nearby multiples and coprime products, respectively. Ratios in the geometric constructions were $29/15,39/20,49/25,63/32,79/40,89/45$. Powers and rounding were computed with integers. The mixed-radix and CRT choices use the fixed seed in the source. Counts are generated inputs, so repeated inputs, if present, count each time. [Construction definitions and C++ witness generator](scripts/round2_families.cpp)
+
+| Construction | Inputs | Repeated residues | Distinct sets with an explicit rival |
+|---|---:|---:|---:|
+| Pure powers of three | 66 | 0 | 66 |
+| Mixed radix 2 and 3 | 792 | 0 | 792 |
+| Rounded geometric | 396 | 0 | 396 |
+| Greedy Golomb ruler | 66 | 0 | 66 |
+| Quadratic Sidon construction | 264 | 1 | 263 |
+| Subgroup and cosets | 396 | 10 | 386 |
+| Coprime CRT products | 1,056 | 56 | 1,000 |
+| **Total** | **3,036** | **67** | **2,969** |
+
+Every distinct-residue input had a squarefree submultiset and a different multiset of the same size, at most six, with identical sum modulo the tested modulus. The Python checker independently validated every certificate, including the modulus, index range, cardinalities and sum. This rules out those inputs at their tested moduli. [Certificate checker](scripts/round2_verify.py)
+
+### Round 3 target
+
+**At $N=1015$, exhaust the remaining unit-normalized third residues $3\le z\le26$ by fixing the final sum at depth six.** For a valid six-point prefix $P$, let $H(P)=(\mathbb Z/N)\setminus R_{10}(P)$. For each $\sigma\in H(P)$ keep an admissible seventh point $x$ only if $\sigma\in H(P\cup\{x\})$. Join $x,y$ when $\sigma\in H(P\cup\{x,y\})$. A valid completion requires **four pairwise adjacent points** summing to $\sigma-\sum P$. Hashing pair sums enumerates all such quadruples. The ordinary multiset DP or the exact interval criterion above can verify every candidate. The graph is a necessary condition because a representation from any proper partial set omits a point of the proposed ten-set.
+
+The Python prototype already eliminates three six-point prefixes at 1015 by counting vertices. Their sets of possible final sums initially had 17, 10 and 9 elements, respectively. None retained four seventh points at the same sum. The prefix $(0,1,3,56,233,253)$ started with 33 possible sums. Two sums retained four vertices apiece, their graphs had five edges in total, and neither had a four-clique. The binary six-point prefix left 753 sums after the vertex check, so the existing exact extension search remains relevant on structured prefixes. [Target-conditioned prototype](scripts/round2_verify.py)
+
+The eight-label version of the global packing gives context for this choice. Label distance $t$ permits a collision between distinct subsets only when the rank difference $w$ has the same parity as $t$ and $|w|\le t-4$. At $n=10,N=1015$ it forces at least $2048-2030=18$ excess labels per pivot pair. On the known valid set at 1016 the measured loss ranges from **384 to 1,024** across the 45 pivot pairs. This large slack is why the target-sum graph is the more discriminating endpoint test in these experiments.
+
+### Reproduction and kernel checks
+
+```sh
+lake build
+lake env lean scripts/check_axioms.lean
+lake env leanchecker --verbose FonollosaMinModulus.Challenge
+lake env leanchecker --verbose FonollosaMinModulus.ResearchLemmas
+lake env leanchecker --fresh --verbose FonollosaMinModulus.ResearchLemmas
+shasum -a 256 FonollosaMinModulus/Challenge.lean
+clang++ -std=c++17 -O3 -march=native -pthread scripts/round2_ten.cpp -o /tmp/fon-round2-ten
+clang++ -std=c++17 -O3 -march=native scripts/round2_families.cpp -o /tmp/fon-round2-families
+py=/Users/mw/miniconda3/bin/python3
+OPENBLAS_NUM_THREADS=1 "$py" -B scripts/round2_profiles.py --audit
+"$py" -B scripts/round2_verify.py small
+"$py" -B scripts/round2_verify.py structure
+"$py" -B scripts/round2_verify.py targets
+"$py" -B scripts/round2_verify.py nonunit-range /tmp/fon-round2-ten 569 1015 5
+"$py" -B scripts/round2_verify.py nonunits
+"$py" -B scripts/round2_verify.py shards 1013 80 1013
+for n in 1013 1014 1015; do
+  "$py" -B scripts/round2_verify.py prefix "$n" 0,1,3,120,161,265
+done
+for n in 593 598 599 601 613; do /tmp/fon-round2-ten "$n" 0 2 "$n" 4; done
+/tmp/fon-round2-ten 612 1 2 612 4
+/tmp/fon-round2-ten 612 -1 2 612 4
+/tmp/fon-round2-ten 1013 1 24 1013 4
+/tmp/fon-round2-ten 1014 1 192 1014 4
+/tmp/fon-round2-ten 1015 1 27 1015 4
+/tmp/fon-round2-ten 1015 -1 2 1015 4
+/tmp/fon-round2-ten 1016 1 3 3 1 standard 7,15,31
+/tmp/fon-round2-families --certificates > /tmp/fon-round2-certificates
+"$py" -B scripts/round2_verify.py certificates /tmp/fon-round2-certificates
+```
+
+Lean 4.36.0 built the root module. An invocation replaying both modules concurrently crashed in the import loader. The individual module replays listed above and the fresh-environment replay each exited successfully. All 27 public declarations in the audit use only `propext`, `Classical.choice`, and `Quot.sound`. The local Lean files contain no proof placeholders or native decision tactics. Lake reports legacy-import module-format warnings. The frozen challenge had the requested SHA-256 before and after Round 2, `3a275f872e63da865d3636a81abd5d9065e75716389f450564d42515666d1d91`.

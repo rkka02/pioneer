@@ -22,3 +22,10 @@ open FonollosaMinModulus
 #print axioms binary_extension_rigidity
 #print axioms minModulus_le_of_binary_core
 #print axioms minModulus_le_of_affine_binary_core
+#print axioms RankPacking.equal_exchanges_cross
+#print axioms RankPacking.equal_rank_half
+#print axioms RankPacking.five_slots
+#print axioms RankPacking.nine_sixteenths_of_pivots
+#print axioms RankPacking.cyclic_nine_sixteenths
+#print axioms signed_zero_of_pivot_interval
+#print axioms triple_multiplicity_card_le

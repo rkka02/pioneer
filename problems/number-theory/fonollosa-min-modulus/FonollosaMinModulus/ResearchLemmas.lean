@@ -5,6 +5,8 @@ import Mathlib.Algebra.BigOperators.Group.Finset.Piecewise
 import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Tactic.LinearCombination
 import Mathlib.Tactic.Ring
+import Mathlib.Tactic.FinCases
+import Mathlib.Data.Finset.Max
 
 /-! Signed relations and subset-sum packings for the frozen definition. -/
 
@@ -664,5 +666,484 @@ theorem minModulus_le_of_affine_binary_core {d : ℕ} (hd : 4 ≤ d) [NeZero N]
   apply minModulus_le_of_binary_core hd hx hcard hcoins _ hB
   intro i hi he
   exact hout (he ▸ mem_image_of_mem coin (mem_range.mpr (by omega)))
+
+end FonollosaMinModulus
+
+namespace FonollosaMinModulus
+open Finset
+namespace RankPacking
+
+variable {α : Type*} [LinearOrder α]
+
+private def precedes (W : Finset α) (rev : Bool) (x y : α) : Prop :=
+  (x ∈ W ∧ y ∉ W) ∨ ((x ∈ W ↔ y ∈ W) ∧ (if rev then y < x else x < y))
+
+private lemma precedes_asymm {W : Finset α} {rev : Bool} {x y : α}
+    (h : precedes W rev x y) : ¬ precedes W rev y x := by
+  cases rev <;> simp only [precedes, Bool.false_eq_true, reduceIte, ↓reduceIte] at * <;> grind
+
+private def toggle (W : Finset α) (x : α) := if x ∈ W then W.erase x else insert x W
+
+private lemma mem_toggle {W : Finset α} {x y : α} :
+    y ∈ toggle W x ↔ if y = x then y ∉ W else y ∈ W := by
+  by_cases e : y = x <;> by_cases h : x ∈ W <;> simp_all [toggle]
+
+private lemma toggle_ne (W : Finset α) (x : α) : toggle W x ≠ W := by
+  intro h
+  have h' : x ∈ toggle W x ↔ x ∈ W := by rw [h]
+  rw [mem_toggle] at h'
+  simp at h'
+
+private lemma toggle_inj (W : Finset α) {x y : α} (h : toggle W x = toggle W y) : x = y := by
+  by_contra hn
+  have h' : x ∈ toggle W x ↔ x ∈ toggle W y := by rw [h]
+  simp [mem_toggle, hn] at h'
+
+/-- A disjoint nonempty pair of sets of coordinates in a Boolean cube. -/
+private structure Window (α : Type*) [LinearOrder α] where
+  left : Finset α
+  right : Finset α
+  left_nonempty : left.Nonempty
+  right_nonempty : right.Nonempty
+  disj : Disjoint left right
+
+private def Window.both (w : Window α) := w.left ∪ w.right
+private def Window.lo (w : Window α) := w.both.min' (w.left_nonempty.mono subset_union_left)
+private def Window.hi (w : Window α) := w.both.max' (w.left_nonempty.mono subset_union_left)
+
+private lemma Window.lo_mem (w : Window α) : w.lo ∈ w.both := min'_mem _ _
+private lemma Window.hi_mem (w : Window α) : w.hi ∈ w.both := max'_mem _ _
+private lemma Window.lo_le (w : Window α) {x : α} (h : x ∈ w.both) : w.lo ≤ x := min'_le _ _ h
+private lemma Window.le_hi (w : Window α) {x : α} (h : x ∈ w.both) : x ≤ w.hi := le_max' _ _ h
+
+private lemma Window.ends_ne (w : Window α) : w.lo ≠ w.hi := by
+  intro h
+  obtain ⟨x,hx⟩ := w.left_nonempty
+  obtain ⟨y,hy⟩ := w.right_nonempty
+  have ex : x = w.lo := le_antisymm ((w.le_hi (mem_union_left _ hx)).trans h.ge) (w.lo_le (mem_union_left _ hx))
+  have ey : y = w.lo := le_antisymm ((w.le_hi (mem_union_right _ hy)).trans h.ge) (w.lo_le (mem_union_right _ hy))
+  exact disjoint_left.mp w.disj hx ((ex.trans ey.symm).symm ▸ hy)
+
+private def Window.encode (w : Window α) (S : Finset α) (i : Fin 4) : Finset α × Bool :=
+  if i = 0 then (S,false) else if i = 1 then (S,true) else
+  if i = 2 then (toggle S w.lo, decide (w.lo ∈ w.right))
+  else (toggle S w.hi, decide (w.hi ∈ w.left))
+
+private lemma Window.encode_inj (w : Window α) (S : Finset α) :
+    Function.Injective (w.encode S) := by
+  intro i j h
+  have he := w.ends_ne
+  have hl := toggle_ne S w.lo
+  have hh := toggle_ne S w.hi
+  have ht : toggle S w.lo ≠ toggle S w.hi := fun h => he (toggle_inj S h)
+  fin_cases i <;> fin_cases j <;> simp_all [Window.encode, eq_comm]
+
+private lemma Window.encode_inside (w : Window α) {S R : Finset α} (hS : S ⊆ R)
+    (hw : w.both ⊆ R) (i : Fin 4) : (w.encode S i).1 ⊆ R := by
+  have aux (x : α) (hx : x ∈ R) : toggle S x ⊆ R := by
+    intro y hy
+    by_cases h : y = x
+    · simpa [h] using hx
+    · exact hS (by simpa [mem_toggle,h] using hy)
+  fin_cases i <;> simp [Window.encode, hS, aux _ (hw w.lo_mem), aux _ (hw w.hi_mem)]
+
+private lemma Window.decode (w : Window α) {S : Finset α} (hL : w.left ⊆ S)
+    (hR : Disjoint S w.right) (i : Fin 4) :
+    (w.encode S i).1 \ w.right ∪ w.left = S := by
+  have none := disjoint_left.mp hR
+  have aux {x : α} (hx : x ∈ w.both) : toggle S x \ w.right ∪ w.left = S := by
+    ext y
+    by_cases e : y=x
+    · subst y
+      rcases mem_union.mp hx with h|h
+      · simp [h,hL h]
+      · have hs : x ∉ S := fun m => none m h
+        have hl : x ∉ w.left := fun m => hs (hL m)
+        simp [h,hs,hl]
+    · simp only [mem_union,mem_sdiff,mem_toggle,ite_eq_right e]
+      grind
+  have base : S \ w.right ∪ w.left = S := by ext x; simp only [mem_union,mem_sdiff]; grind
+  fin_cases i <;> simp [Window.encode, base, aux w.lo_mem, aux w.hi_mem]
+
+private lemma sep_toggle {S D C : Finset α} {x : α} (rev : Bool) (hD : D ⊆ S)
+    (hC : Disjoint S C)
+    (hleft : x ∈ D → ∀ c ∈ C, if rev then c < x else x < c)
+    (hright : x ∈ C → ∀ d ∈ D, if rev then x < d else d < x) :
+    ∀ d ∈ D, ∀ c ∈ C, precedes (toggle S x) rev d c := by
+  intro d hd c hc
+  have hs := hD hd
+  have hn : c ∉ S := fun h => disjoint_left.mp hC h hc
+  have ne : d ≠ c := fun h => hn (h ▸ hs)
+  by_cases e : d=x
+  · subst d
+    exact Or.inr ⟨by simp [mem_toggle,ne.symm,hs,hn], hleft hd c hc⟩
+  by_cases f : c=x
+  · subst c
+    exact Or.inr ⟨by simp [mem_toggle,e,hs,hn], hright hc d hd⟩
+  exact Or.inl ⟨by simpa [mem_toggle,e] using hs, by simpa [mem_toggle,f] using hn⟩
+
+private lemma Window.separates (w : Window α) {S : Finset α} (hL : w.left ⊆ S)
+    (hR : Disjoint S w.right) (i : Fin 4) :
+    ∀ d ∈ w.left, ∀ c ∈ w.right, precedes (w.encode S i).1 (w.encode S i).2 d c := by
+  have base (rev : Bool) : ∀ d ∈ w.left, ∀ c ∈ w.right, precedes S rev d c :=
+    fun _ hd _ hc => Or.inl ⟨hL hd, fun h => disjoint_left.mp hR h hc⟩
+  have dl := disjoint_left.mp w.disj
+  fin_cases i
+  · exact base false
+  · exact base true
+  · apply sep_toggle _ hL hR
+    · intro h c hc
+      have hn := dl h
+      have ne : w.lo ≠ c := fun e => hn (e ▸ hc)
+      simpa [Window.encode,hn] using lt_of_le_of_ne (w.lo_le (mem_union_right _ hc)) ne
+    · intro h d hd
+      have ne : w.lo ≠ d := fun e => dl hd (e ▸ h)
+      simpa [Window.encode,h] using lt_of_le_of_ne (w.lo_le (mem_union_left _ hd)) ne
+  · apply sep_toggle _ hL hR
+    · intro h c hc
+      have ne : c ≠ w.hi := fun e => dl h (e ▸ hc)
+      simpa [Window.encode,h] using lt_of_le_of_ne (w.le_hi (mem_union_right _ hc)) ne
+    · intro h d hd
+      have hn : w.hi ∉ w.left := fun hl => dl hl h
+      have ne : d ≠ w.hi := fun e => hn (e ▸ hd)
+      simpa [Window.encode,hn] using lt_of_le_of_ne (w.le_hi (mem_union_left _ hd)) ne
+
+/-- Comparable windows are separated by a Boolean cut and either tie order.
+Two opposite endpoint toggles give the other two encodings. -/
+private theorem window_bound (R : Finset α) (E : Finset (Finset α)) (W : Finset α → Window α)
+    (hsub : E ⊆ R.powerset)
+    (hW : ∀ S ∈ E, (W S).left ⊆ S ∧ Disjoint S (W S).right ∧ (W S).both ⊆ R)
+    (cross : ∀ S ∈ E, ∀ T ∈ E, W S ≠ W T →
+      ∃ x ∈ (W S).left, x ∈ (W T).right) :
+    2 * E.card ≤ R.powerset.card := by
+  classical
+  let f (p : Fin 4 × Finset α) := (W p.2).encode p.2 p.1
+  have hj : Set.InjOn f ↑((univ : Finset (Fin 4)) ×ˢ E) := by
+    rintro ⟨i,S⟩ hS ⟨j,T⟩ hT he
+    have hs := (mem_product.mp hS).2
+    have ht := (mem_product.mp hT).2
+    change (W S).encode S i = (W T).encode T j at he
+    obtain ⟨sl,sr,_⟩ := hW S hs
+    obtain ⟨tl,tr,_⟩ := hW T ht
+    have ww : W S = W T := by
+      by_contra hn
+      obtain ⟨d,hd,h'd⟩ := cross S hs T ht hn
+      obtain ⟨c,hc,h'c⟩ := cross T ht S hs (Ne.symm hn)
+      have h1 := (W S).separates sl sr i d hd c h'c
+      rw [he] at h1
+      exact precedes_asymm h1 ((W T).separates tl tr j c hc d h'd)
+    have de := (W S).decode sl sr i
+    rw [he,ww] at de
+    have st := de.symm.trans ((W T).decode tl tr j)
+    subst T
+    exact Prod.ext ((W S).encode_inj S he) rfl
+  have h := card_le_card_of_injOn (t := R.powerset ×ˢ (univ : Finset Bool)) f (by
+    rintro ⟨i,S⟩ hp
+    have hs := (mem_product.mp hp).2
+    exact mem_product.mpr ⟨mem_powerset.mpr ((W S).encode_inside (mem_powerset.mp (hsub hs))
+      (hW S hs).2.2 i),mem_univ _⟩) hj
+  simp only [card_product,card_univ,Fintype.card_fin,Fintype.card_bool] at h
+  omega
+
+
+private lemma Window.eq_of_parts {v w : Window α} (h : v.left=w.left) (h' : v.right=w.right) :
+    v=w := by cases v; cases w; congr
+
+variable {N : ℕ} {A R : Finset (ZMod N)}
+
+/-- Different equal-length exchanges for one fixed displacement must cross in both directions. -/
+theorem equal_exchanges_cross (hA : IsValidMod A) {S T U V : Finset (ZMod N)}
+    (hs : S ⊆ A) (ht : T ⊆ A) (hu : U ⊆ A) (hv : V ⊆ A)
+    (hst : S.card=T.card) (huv : U.card=V.card)
+    (he : (∑ x ∈ T, x) - (∑ x ∈ S, x) = (∑ x ∈ V, x) - (∑ x ∈ U, x))
+    (hd : Disjoint (S \ T) (V \ U)) : S \ T = U \ V ∧ T \ S = V \ U := by
+  classical
+  let c (x : ZMod N) := mark T x - mark S x + mark U x - mark V x
+  have hc := valid_iff_signed.mp hA c (by
+    intro x _
+    have hbad : x ∈ S \ T → x ∉ V \ U := fun h => disjoint_left.mp hd h
+    simp only [mem_sdiff] at hbad
+    dsimp [c,mark]
+    split_ifs <;> simp_all) (by simp [c,sum_sub_distrib,sum_add_distrib,sum_mark hs,
+      sum_mark ht,sum_mark hu,sum_mark hv,hst,huv]) (by
+    simp [c,sub_mul,add_mul,sum_sub_distrib,sum_add_distrib,
+      weight_mark hs,weight_mark ht,weight_mark hu,weight_mark hv]
+    linear_combination he)
+  have eqbits (x : ZMod N) : mark T x - mark S x + mark U x - mark V x = 0 := by
+    by_cases h : x ∈ A
+    · exact hc x h
+    · have h1 : x ∉ S := fun m => h (hs m)
+      have h2 : x ∉ T := fun m => h (ht m)
+      have h3 : x ∉ U := fun m => h (hu m)
+      have h4 : x ∉ V := fun m => h (hv m)
+      simp [mark,h1,h2,h3,h4]
+  constructor <;> ext x <;> have H := eqbits x <;> simp only [mem_sdiff] <;>
+    dsimp [mark] at H <;> split_ifs at H <;> simp_all
+
+/-- At most half the subsets can move by a fixed nonzero displacement while retaining
+their cardinality. Both the source and the destination lie in the same subcube. -/
+theorem equal_rank_half [NeZero N] (hA : IsValidMod A) (hR : R ⊆ A) (g : ZMod N) (hg : g ≠ 0) :
+    2 * (R.powerset.filter (fun S => ∃ T ∈ R.powerset, T.card = S.card ∧
+      (∑ x ∈ T, x) = (∑ x ∈ S, x) + g)).card ≤ R.powerset.card := by
+  classical
+  let ord := LinearOrder.lift' ZMod.val (ZMod.val_injective N)
+  let : LinearOrder (ZMod N) := { ord with
+    toDecidableEq := ZMod.decidableEq N
+    compare := fun x y => @compareOfLessAndEq _ x y ord.toLT (ord.toDecidableLT x y) (ZMod.decidableEq N)
+    compare_eq_compareOfLessAndEq := fun _ _ => rfl }
+  let E := R.powerset.filter (fun S => ∃ T ∈ R.powerset, T.card = S.card ∧
+      (∑ x ∈ T, x) = (∑ x ∈ S, x) + g)
+  change 2 * E.card ≤ _
+  by_cases hempty : E.Nonempty
+  · obtain ⟨s₀,hs₀⟩ := hempty
+    have partner (S) (hS : S ∈ E) := (mem_filter.mp hS).2
+    let mate (S) (hS : S ∈ E) := Classical.choose (partner S hS)
+    have prop (S) (hS : S ∈ E) := Classical.choose_spec (partner S hS)
+    have parts (S) (hS : S ∈ E) : (S \ mate S hS).Nonempty ∧ (mate S hS \ S).Nonempty := by
+      obtain ⟨_,hcard,hw⟩ := prop S hS
+      change (mate S hS).card = S.card at hcard
+      change (∑ x ∈ mate S hS,x) = _ at hw
+      have neq : mate S hS ≠ S := by intro h; rw [h] at hw; exact hg (by linear_combination -hw)
+      constructor
+      · apply sdiff_nonempty.mpr
+        exact fun h => neq (eq_of_subset_of_card_le h hcard.le).symm
+      · apply sdiff_nonempty.mpr
+        exact fun h => neq (eq_of_subset_of_card_le h hcard.ge)
+    let mk (S) (hS : S ∈ E) : Window (ZMod N) :=
+      ⟨S \ mate S hS, mate S hS \ S, (parts S hS).1,(parts S hS).2, by
+        apply disjoint_left.mpr; simp only [mem_sdiff]; grind⟩
+    let W (S) := if h : S ∈ E then mk S h else mk s₀ hs₀
+    apply window_bound R E W (filter_subset ..)
+    · intro S hs
+      have hr := mem_powerset.mp (mem_filter.mp hs).1
+      have hm := mem_powerset.mp (prop S hs).1
+      change mate S hs ⊆ R at hm
+      simp only [W,dite_eq_left hs,mk,Window.both]
+      exact ⟨sdiff_subset, disjoint_left.mpr (fun _ hx hy => (mem_sdiff.mp hy).2 hx),
+        union_subset (sdiff_subset.trans hr) (sdiff_subset.trans hm)⟩
+    · intro S hs U hu hn
+      by_contra no
+      have hd : Disjoint (S \ mate S hs) (mate U hu \ U) := by
+        apply disjoint_left.mpr
+        intro x hx hy
+        exact no ⟨x,by simpa [W,hs,mk] using hx,by simpa [W,hu,mk] using hy⟩
+      obtain ⟨tR,tc,tw⟩ := prop S hs
+      obtain ⟨vR,vc,vw⟩ := prop U hu
+      have ee := equal_exchanges_cross hA ((mem_powerset.mp (mem_filter.mp hs).1).trans hR)
+        ((mem_powerset.mp tR).trans hR) ((mem_powerset.mp (mem_filter.mp hu).1).trans hR)
+        ((mem_powerset.mp vR).trans hR) tc.symm vc.symm (by rw [tw,vw]; ring) hd
+      apply hn
+      apply Window.eq_of_parts <;> simp only [W,dite_eq_left hs,dite_eq_left hu,mk]
+      · exact ee.1
+      · exact ee.2
+  · simp [not_nonempty_iff_eq_empty.mp hempty]
+
+end RankPacking
+end FonollosaMinModulus
+
+namespace FonollosaMinModulus
+open Finset
+namespace RankPacking
+variable {N : ℕ} {A : Finset (ZMod N)}
+
+/-- Five slots around each rank-centred subset sum, using two copies of the group.
+Only an equal-rank shift by twice the pivot difference can identify two slots. -/
+theorem five_slots [NeZero N] (hA : IsValidMod A) {a b : ZMod N}
+    (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b) :
+    let R := (A.erase a).erase b
+    let E := R.powerset.filter (fun S => ∃ T ∈ R.powerset, T.card = S.card ∧
+      (∑ x ∈ T, x) = (∑ x ∈ S, x) + 2*(b-a))
+    5 * R.powerset.card ≤ 2 * N + E.card := by
+  classical
+  let R := (A.erase a).erase b
+  let K := R.powerset
+  let d := b-a
+  let F (S : Finset (ZMod N)) := ∑ x ∈ S, (x-a)
+  let E := K.filter (fun S => ∃ T ∈ K, T.card = S.card ∧
+      (∑ x ∈ T, x) = (∑ x ∈ S, x) + 2*d)
+  let allSlots := range 5 ×ˢ K
+  let cut := ({4} : Finset ℕ) ×ˢ E
+  let D := allSlots \ cut
+  let height (i : ℕ) (S : Finset (ZMod N)) : ℤ := (i : ℤ) - S.card
+  let f (p : ℕ × Finset (ZMod N)) :=
+    (F p.2 + ((height p.1 p.2 / 2 : ℤ) : ZMod N)*d, height p.1 p.2 % 2)
+  have hcut : cut ⊆ allSlots := product_subset_product (by decide) (filter_subset ..)
+  have props (i : ℕ) (S) (hp : (i,S) ∈ D) : i < 5 ∧ S ∈ K ∧ (i=4 → S ∉ E) := by
+    obtain ⟨hh,nh⟩ := mem_sdiff.mp hp
+    obtain ⟨hi,hs⟩ := mem_product.mp hh
+    exact ⟨mem_range.mp hi,hs,fun he h => nh (mem_product.mpr ⟨mem_singleton.mpr he,h⟩)⟩
+  have collision {i j : ℕ} {S T : Finset (ZMod N)}
+      (hi : (i,S) ∈ D) (hj : (j,T) ∈ D) (he : f (i,S) = f (j,T)) :
+      ¬ (i=4 ∧ j=0 ∧ S.card=T.card) := by
+    rintro ⟨rfl,rfl,eq⟩
+    obtain ⟨_,hs,del⟩ := props _ _ hi
+    obtain ⟨_,ht,_⟩ := props _ _ hj
+    apply del rfl
+    refine mem_filter.mpr ⟨hs,T,ht,eq.symm,?_⟩
+    have hw := congrArg Prod.fst he
+    change F S + ((height 4 S/2 : ℤ) : ZMod N)*d =
+      F T + ((height 0 T/2 : ℤ) : ZMod N)*d at hw
+    have sz : height 4 S/2 = height 0 T/2 + 2 := by dsimp [height]; omega
+    rw [sz, Int.cast_add] at hw
+    simp only [F,sum_sub_distrib,sum_const,nsmul_eq_mul,eq,Int.cast_ofNat] at hw
+    linear_combination -hw
+  have inj : Set.InjOn f ↑D := by
+    rintro ⟨i,S⟩ hi ⟨j,T⟩ hj he
+    obtain ⟨hib,hs,_⟩ := props _ _ hi
+    obtain ⟨hjb,ht,_⟩ := props _ _ hj
+    have bad := collision hi hj he
+    have bad' := collision hj hi he.symm
+    have hp := congrArg Prod.snd he
+    change height i S % 2 = height j T % 2 at hp
+    have hw := congrArg Prod.fst he
+    change F S + ((height i S/2 : ℤ) : ZMod N)*d =
+      F T + ((height j T/2 : ℤ) : ZMod N)*d at hw
+    let v := height j T / 2 - height i S / 2
+    have hm : 2*v = ((j : ℤ)-i) + ((S.card : ℤ)-T.card) := by
+      dsimp [v,height] at *; omega
+    have hl : min 0 ((S.card : ℤ)-T.card)-1 ≤ v := by omega
+    have hr : v ≤ max 0 ((S.card : ℤ)-T.card)+1 := by omega
+    have hsT := subsets_eq_of_pivot_interval hA ha hb hab (mem_powerset.mp hs) (mem_powerset.mp ht)
+      v hl hr (by change F S = F T + (v : ZMod N)*d; dsimp [v]; push_cast; linear_combination hw)
+    subst T
+    have hv : (v : ZMod N)*d=0 := by dsimp [v]; push_cast; linear_combination -hw
+    have hd : d ≠ 0 := sub_ne_zero.mpr hab.symm
+    have zero : v=0 := by
+      have rangeV : v = -1 ∨ v = 0 ∨ v = 1 := by omega
+      rcases rangeV with h|h|h
+      · simp [h,hd] at hv
+      · exact h
+      · simp [h,hd] at hv
+    exact Prod.ext (by omega) rfl
+  have h := card_le_card_of_injOn (t := (univ : Finset (ZMod N)) ×ˢ ({0,1} : Finset ℤ)) f
+    (by
+      rintro ⟨i,S⟩ _
+      apply mem_product.mpr
+      refine ⟨mem_univ _,?_⟩
+      change height i S % 2 ∈ ({0,1} : Finset ℤ)
+      simp only [mem_insert,mem_singleton]; omega) inj
+  have cv := card_sdiff_add_card_eq_card hcut
+  change D.card + cut.card = allSlots.card at cv
+  simp [allSlots,cut] at cv
+  simp [ZMod.card] at h
+  change 5*K.card ≤ 2*N+E.card
+  omega
+
+/-- The 9/16 lower bound for any pair with non-involutory difference. -/
+theorem nine_sixteenths_of_pivots [NeZero N] (hA : IsValidMod A) {a b : ZMod N}
+    (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b) (hd : 2*(b-a) ≠ 0) :
+    9 * 2^(A.card-2) ≤ 4*N := by
+  have h := five_slots hA ha hb hab
+  dsimp only at h
+  have e := equal_rank_half (R := (A.erase a).erase b) hA
+    ((erase_subset ..).trans (erase_subset ..)) _ hd
+  have hb' := mem_erase.mpr ⟨hab.symm,hb⟩
+  simp only [card_powerset,card_erase_of_mem hb',card_erase_of_mem ha,Nat.sub_sub,Nat.reduceAdd] at h e
+  omega
+
+/-- Every cyclic group accommodating a valid set of at least three points has
+order at least (9/16) times 2 to the power of the cardinality. -/
+theorem cyclic_nine_sixteenths [NeZero N] (hA : IsValidMod A) (hn : 3 ≤ A.card) :
+    9 * 2^(A.card-2) ≤ 4*N := by
+  classical
+  obtain ⟨a,ha⟩ := card_pos.mp (show 0 < A.card by omega)
+  have ce := card_erase_of_mem ha
+  obtain ⟨b,hb,c,hc,hbc⟩ := one_lt_card.mp (show 1 < (A.erase a).card by omega)
+  obtain ⟨hba,hbA⟩ := mem_erase.mp hb
+  obtain ⟨hca,hcA⟩ := mem_erase.mp hc
+  by_cases h : 2*(b-a) = 0
+  · apply nine_sixteenths_of_pivots hA ha hcA hca.symm
+    intro h'
+    have ordTwo (x : ZMod N) (hx : x ≠ a) (he : 2*(x-a)=0) : 2*(x-a).val = N := by
+      have neg : -(x-a) = x-a := by linear_combination -he
+      exact ((ZMod.neg_eq_self_iff _).mp neg).resolve_left (sub_ne_zero.mpr hx)
+    have left := ordTwo b hba h
+    have right := ordTwo c hca h'
+    have eq := ZMod.val_injective N (show (b-a).val=(c-a).val by omega)
+    exact hbc (sub_left_inj.mp eq)
+  · exact nine_sixteenths_of_pivots hA ha hbA hba.symm h
+
+end RankPacking
+end FonollosaMinModulus
+
+namespace FonollosaMinModulus
+open Finset
+
+/-- If two chosen pivots satisfy the interval exclusion, every balanced signed
+relation bounded above by one off those pivots vanishes. -/
+theorem signed_zero_of_pivot_interval {N : ℕ} {A : Finset (ZMod N)} {a b : ZMod N}
+    (ha : a ∈ A) (hb : b ∈ A) (hab : a ≠ b)
+    (hI : ∀ S ⊆ (A.erase a).erase b, ∀ T ⊆ (A.erase a).erase b, ∀ j : ℤ,
+      min 0 ((S.card : ℤ) - T.card) - 1 ≤ j → j ≤ max 0 ((S.card : ℤ) - T.card) + 1 →
+      (∑ x ∈ S, (x-a)) = (∑ x ∈ T, (x-a)) + (j : ZMod N)*(b-a) → S = T)
+    (c : ZMod N → ℤ) (hl : ∀ x ∈ A, -1 ≤ c x)
+    (hu : ∀ x ∈ (A.erase a).erase b, c x ≤ 1)
+    (hc : ∑ x ∈ A, c x = 0) (hw : ∑ x ∈ A, (c x : ZMod N)*x = 0) :
+    ∀ x ∈ A, c x = 0 := by
+  classical
+  let R := (A.erase a).erase b
+  let S := R.filter (fun x => c x = -1)
+  let T := R.filter (fun x => c x = 1)
+  have hR : R ⊆ A := (erase_subset ..).trans (erase_subset ..)
+  have hs : S ⊆ R := filter_subset ..
+  have ht : T ⊆ R := filter_subset ..
+  let v (x : ZMod N) := mark T x - mark S x + spike a (c a) x + spike b (c b) x
+  have hv (x) (hx : x ∈ A) : c x = v x := by
+    by_cases ea : x = a
+    · subst x; simp [v,mark,spike,S,T,R,hab.symm]
+    by_cases eb : x = b
+    · subst x; simp [v,mark,spike,S,T,R,hab]
+    have hm : x ∈ R := mem_erase.mpr ⟨eb,mem_erase.mpr ⟨ea,hx⟩⟩
+    have l := hl x hx
+    have u := hu x hm
+    have choices : c x = -1 ∨ c x = 0 ∨ c x = 1 := by omega
+    rcases choices with h|h|h <;> simp [v,mark,spike,S,T,hm,Ne.symm ea,Ne.symm eb,h]
+  have count : (T.card : ℤ) - S.card + c a + c b = 0 := by
+    rw [sum_congr rfl hv] at hc
+    simpa [v,sum_add_distrib,sum_sub_distrib,sum_mark (ht.trans hR),sum_mark (hs.trans hR),
+      sum_spike ha,sum_spike hb] using hc
+  have weight : (∑ x ∈ T,x) - (∑ x ∈ S,x) + (c a : ZMod N)*a + (c b : ZMod N)*b = 0 := by
+    have hh : ∀ x ∈ A, (c x : ZMod N)*x = (v x : ZMod N)*x :=
+      fun x hx => congrArg (fun z : ℤ => (z : ZMod N)*x) (hv x hx)
+    rw [sum_congr rfl hh] at hw
+    simpa [v,sub_mul,add_mul,sum_add_distrib,sum_sub_distrib,weight_mark (ht.trans hR),
+      weight_mark (hs.trans hR),weight_spike ha,weight_spike hb] using hw
+  have la := hl a ha
+  have lb := hl b hb
+  have balance : c a + c b = (S.card : ℤ) - T.card := by omega
+  have castBalance := congrArg (Int.cast : ℤ → ZMod N) balance
+  push_cast at castBalance
+  have st := hI S hs T ht (c b) (by omega) (by omega) (by
+    simp only [sum_sub_distrib,sum_const,nsmul_eq_mul]
+    linear_combination -weight + a*castBalance)
+  rw [st] at count weight
+  simp only [sub_self,zero_add] at count weight
+  have cb : c b = 0 := by
+    have choices : c b = -1 ∨ c b = 0 ∨ c b = 1 := by omega
+    rcases choices with h|h|h
+    · have ca : c a = 1 := by omega
+      simp [ca,h] at weight
+      exact False.elim (hab (by linear_combination weight))
+    · exact h
+    · have ca : c a = -1 := by omega
+      simp [ca,h] at weight
+      exact False.elim (hab (by linear_combination -weight))
+  have ca : c a = 0 := by omega
+  intro x hx
+  rw [hv x hx]
+  simp [v,st,ca,cb,spike]
+
+
+/-- A multiset of total size |A| can have multiplicity at least three at no
+more than one third of its coordinates. -/
+theorem triple_multiplicity_card_le {α : Type*} (A : Finset α) (m : α → ℕ)
+    (hm : ∑ x ∈ A, m x = A.card) : 3 * (A.filter (fun x => 3 ≤ m x)).card ≤ A.card := by
+  classical
+  let H := A.filter fun x => 3 ≤ m x
+  calc
+    3 * H.card = ∑ _x ∈ H, 3 := by simp [mul_comm]
+    _ ≤ ∑ x ∈ H, m x := sum_le_sum (fun _ hx => (mem_filter.mp hx).2)
+    _ ≤ ∑ x ∈ A, m x := sum_le_sum_of_subset_of_nonneg (filter_subset ..) (fun _ _ _ => Nat.zero_le _)
+    _ = A.card := hm
 
 end FonollosaMinModulus
