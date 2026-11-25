@@ -8,6 +8,7 @@ public import Tutte3Flow.VoltageLift
 public import Tutte3Flow.BoundaryDeck
 public import Tutte3Flow.PairedInterfaces
 public import Tutte3Flow.MatchingJoin
+public import Tutte3Flow.MatchingTree
 public import Tutte3Flow.TransferReorientation
 public import Tutte3Flow.TransferExample
 public import Tutte3Flow.TransferTemplates

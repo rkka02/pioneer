@@ -80,12 +80,12 @@ public theorem joinPorts_realizes_iff (a : I → V) (b : I → W) (γ : V → ZM
       rw [hr]
       exact add_sub_cancel_right _ _
 
-private theorem realizable_mass [Fintype V] {γ : V → ZMod 3} (h : G.realizesBoundary γ) :
+public theorem realizable_mass [Fintype V] {γ : V → ZMod 3} (h : G.realizesBoundary γ) :
     ∑ v, γ v = 0 := by
   obtain ⟨s, rfl⟩ := h
   simp [mod3Divergence, sum_sub_distrib, sum_fiberwise]
 
-private theorem portDemand_injective {a : I → V} (inj : Function.Injective a) :
+public theorem portDemand_injective {a : I → V} (inj : Function.Injective a) :
     Function.Injective (portDemand a) := by
   intro s t h
   funext i
@@ -96,7 +96,7 @@ private theorem portDemand_injective {a : I → V} (inj : Function.Injective a) 
   exact (show ∀ j k : Bool, (if j then 1 else -1 : ZMod 3) = (if k then 1 else -1) →
       j = k by decide) _ _ he
 
-private theorem portDemand_total [Fintype V] {k : ℕ} (p : Fin k → V) (s : Fin k → Bool) :
+public theorem portDemand_total [Fintype V] {k : ℕ} (p : Fin k → V) (s : Fin k → Bool) :
     ∑ v, portDemand p s v = portTotal s := sum_fiberwise univ p _
 
 /-- On a triple matching between graphs each missing just the zero boundary, give every
