@@ -252,3 +252,211 @@ python3 scripts/audit.py
 The Python set evaluator accepts arbitrary-size integer weights and treats repeated inputs as distinct tokens, so it can also explore multisets. The frozen theorem uses finsets. Runtime of the unrestricted solvers grows exponentially. A restricted-defense `fails` output only rules out the specified policy.
 
 The Lean audit builds the default library, executes `#print axioms` on all 46 public research definitions and theorems, and checks the output against `propext`, `Classical.choice` and `Quot.sound`. The library opts into Lake's legacy import format for the frozen source. The SHA-256 verified before and after the round is `0c7b6e8f75bde1c74259441029e6abe935610064d7748cd93bb28460ccbb5df3`. Lean proves the frozen implication for every $N\le12$. Its Boolean search short-circuits at successful moves, and `canReach_correct` proves that both Boolean thresholds agree with the list evaluator. The larger prefix values in the table come from the exact C++ searches. [Lean module](CatchUpGame/ResearchLemmas.lean) · [Axiom and integrity audit](scripts/audit.py)
+
+## Round 2
+
+**Case C. The prefix $N=48$ is an exact draw.** Openings 1 and 2 each guarantee P1 at least 588 points. Opening reversal supplies the upper bound. The universal conjecture remains open in this project. The fixed-point question has an exact answer for arbitrary distinct positive weights. The only nonempty tied board on which a defender can always hand back a lead of at most two is $\{1,2,3\}$. More generally, a persistent absolute cap $K$ requires $\lvert S\rvert \le4K$. A different pairing strategy does work on unbounded families once the defender has a sufficient lead. These results concern either designated player against unrestricted opposition. [Lean proofs](CatchUpGame/ResearchLemmas.lean)
+
+### The exact-catch and small-overshoot fixed points
+
+Write $O(R,d)$ when the opponent acts $d$ behind the designated defender, and $D(R,d)$ when the defender acts $d$ behind the opponent. A handoff happens at the first pick that reaches or crosses equality. The defender must avoid a final loss and obey the cap even on their final handoff. At $O(R,0)$ the opponent opens. For the requested search inside the ordinary drawn boards, each tied reentry must belong to that domain. A **persistent** cap allows successive capped handoffs. An **isolated** overshoot requires the defender's next completed turn to restore equality if play reaches that turn. The latter implements the proposed two-step return. In the optional **winning exit** experiment the defender may switch to unrestricted play at a position where ordinary minimax already gives that defender a strict win. [Fixed-point evaluator](scripts/closure.cpp)
+
+For pure exact catches the greatest fixed point is $\{\varnothing\}$. An opponent can always open the minimum. Every nonempty subset of the remainder exceeds it, and the empty subset has sum zero. In particular, allowing the defender to choose *which* exact subset to take does not change this result. The independent bit scan rejects all 524,287 nonempty even boards in $[1,20]$ and all 8,388,607 in $[1,24]$. The two scans took under 0.01 seconds and 0.04 seconds, respectively, at the timer’s 0.01-second resolution. Even an opening that *can* be matched can require an overshoot. On $[1,8]$, an opening of 3 has the unique exact response $\{1,2\}$, handing the opponent the strictly winning board $[4,8]$. [Minimum obstruction and five-token witness](CatchUpGame/ResearchLemmas.lean)
+
+The following classification holds without any parity assumption or maximum-weight cutoff. Every listed board works, and every omitted one fails. Intersecting it with the draw-domain condition at ties leaves the same list.
+
+| Opponent's deficit $d$ | All $R$ with $O(R,d)$ under persistent cap 2 |
+|---:|---|
+| 0 | $\varnothing$, $\{1,2,3\}$ |
+| 1 | $\varnothing$, $\{1\}$, and $\{a,a+1\}$ for every $a\ge1$ |
+| 2 | $\varnothing$, $\{1\}$, $\{2\}$ |
+
+To see the induction, let $m$ be the minimum. When $m\ge d$, playing $m$ gives the defender deficit $m-d$. Every remaining token $y$ exceeds it, so the defender must reply with a singleton and the next lead is $d+y-m$. From lead 1 only $y=m+1$ fits. From lead 2 no larger token fits. If $m=1<d=2$, the opponent can instead continue picking at deficit 1. Applying the smaller-board classification leaves only a few exceptional shapes. An alternative opening of $a$ refutes $\{1,a,a+1\}$ at deficit 2 for $a\ge2$. An opening of $a+1$ refutes a tied pair of disjoint adjacent pairs $\{a,a+1,b,b+1\}$ with $a+1<b$. For the surviving triple the replies to openings 1, 2, 3 can be 3, 3, and the sequence $1,2$. The induction and converse are in `capped_two_iff`. [Kernel proof](CatchUpGame/ResearchLemmas.lean)
+
+The same minimum argument gives the general cap obstruction. While all tokens exceed $K$, each such round consumes two tokens and increases the lead by at least one. Thus $\lvert R\rvert \le2(K-d)$ there. With low tokens present, follow the minimum again. A continuing opponent pick removes one low token, and a completed round starting with a low token removes at most two tokens before returning control to the opponent. Strong induction gives $\lvert R\rvert \le2K+2\lvert \{x\in R:x\le K\}\rvert \le4K$ for distinct positive weights and $d\le K$. There is no fixed $K$ that covers all prefixes under this policy. For example, on $[1,8]$ after opening 1, reply 2 allows successive minimum opponent picks 3 and 5. Reply 4 is forced after 3 and no cap-two reply exists after 5. The only other permitted first reply, 3, allows the opponent to tie with 2, leaving $[4,8]$ for the defender to open. [Cardinality bounds](CatchUpGame/ResearchLemmas.lean)
+
+**Exact counts.** Each cap-two entry is the number of tied members, including the empty board. The recursion visits strict subsets only, so the equations determine a unique fixed point, hence the greatest one. At an opponent node the recurrence intersects the sets of allowed continuations for all legal picks. At a defender node it takes their union and filters the outgoing lead on each handoff. This considers multi-pick turns and every legal ordering. The packed table stores the parity $d\equiv\sum R\pmod 2$ relevant to an even starting total. [Evaluator](scripts/closure.cpp) · [Independent completed-turn evaluator](scripts/round2.py)
+
+| Universe | Pure exact | Persistent 2 | Isolated 2 | Persistent 2 with winning exits | Isolated 2 with winning exits |
+|---|---:|---:|---:|---:|---:|
+| $[1,20]$ | 1 | 2 | 2 | 35 | 12 |
+| $[1,24]$ | 1 | 2 | 2 | 198 | 45 |
+| $[1,28]$ | 1 | 2 | 2 | 853 | 135 |
+
+In both winning-exit variants the only nonempty admissible prefix accepted through 28 is $[1,3]$. This rules out each of the proposed larger prefixes at 15, 16, 19, 20, 23, and 24 under either interpretation. For a persistent cap of **one** the literal tied counts at 20 and 24 are both one.
+
+| Cap-two policy on $[1,28]$ | $O(R,1)$ | $O(R,2)$ | $D(R,1)$ | $D(R,2)$ |
+|---|---:|---:|---:|---:|
+| Persistent | 28 | 2 | 29 | 54 |
+| Isolated | 1 | 2 | 4 | 5 |
+| Persistent with winning exits | 10,387 | 217,529 | 1,778,370 | 2,419,318 |
+| Isolated with winning exits | 4,154 | 206,984 | 1,767,753 | 2,398,728 |
+
+These lists also characterize the defender-to-act companion explicitly. For $d>0$, choose a nonempty $C\subseteq R$, let $g=\sum C-d$, and require $0\le g\le2$, $\max C>g$, and $O(R\setminus C,g)$ from the classification. This is necessary and sufficient. In a legal completed turn its last token exceeds $g$. Conversely, place $\max C$ last. The preceding sum is then below $d$ and every preceding prefix is legal. At $d=0$ a nonterminal completed turn is a single pick. The Lean theorem for a prescribed overshoot splits the turn into preparatory tokens and a last token. A positive residual deficit before that final token guarantees the turn stays with the defender during preparation. For isolated overshoots, the positive-lead opponent list loses the adjacent pairs at $d=1$. Opening the smaller of an adjacent pair forces a second positive handoff. The singleton and empty cases still work, and the tied list stays the same. The defender-to-act rule uses $g=0$ when an exact return is due. [Whole-turn checker](scripts/round2.py)
+
+For the one-cycle induction test, a tied return to the whole candidate class is accepted as an induction hypothesis, even when that specific class member would itself fail a later turn. The defender may exact-catch or use an isolated overshoot of 1 or 2. The table counts candidate roots that survive *all* opponent openings under that hypothesis. All columns include the empty board. The first failure in each class is $[1,4]$. With winning exits the third density success is $\{2,3,4,5\}$. [Class and induction tests](scripts/closure.cpp)
+
+| Tied hypothesis on $[1,28]$ | Candidate boards | Successful roots | With winning exits |
+|---|---:|---:|---:|
+| $3\lvert S\rvert >2\max S+1$ | 4,638,229 | 2 | 3 |
+| Complete lower bank reaching the maximum | 23,433,227 | 2 | 2 |
+| Both conditions | 2,136,960 | 2 | 2 |
+
+### When bank and pairing arguments work
+
+**A complete bank can coexist with a winning opening.** Take
+$$
+S=\{1,2,3,7,9,11,14,15,22\},\qquad B=\{1,2,3,7,9\}.
+$$
+The bank realizes every sum from 0 to 22. The entire board realizes every sum from 0 to 84 by the same sorted-prefix coverage criterion. Its opening margins in increasing token order are $(-2,2,-2,-2,-4,-4,-6,-8,-8)$. Opening 2 wins. Lean independently certifies the complete bank and the win. Thus a gap anywhere in the board's subset sums cannot be necessary for a decisive outcome. For the earlier board $\{1,2,3,13,14,15\}\cup[17,28]$, 7 is indeed missing and opening 13 wins, but the new witness rules out that proposed explanation as a general criterion. [Lean witness](CatchUpGame/ResearchLemmas.lean) · [Opening-margin evaluator](scripts/research.py)
+
+Among all nonempty even-total boards in $[1,28]$, 23,433,226 have a complete bank below the maximum whose sum reaches the maximum. Of these, 151 win, 23,433,075 draw, and zero lose. Requiring an actual low interval $[1,k]$ with $k(k+1)/2\ge\max S$ and a nonempty upper part gives 1,057,042 draws and zero decisive outcomes. Even here 22 boards lose on opening 1. A reproducible sample of another 7,948 boards with $7\le k\le12$ and up to eight upper tokens also gave all draws. The interval-bank condition remains an empirical candidate. [Exhaustive bank scan](scripts/retrograde.cpp) · [Larger-board generator](scripts/round2.py)
+
+**An unbounded paired class with a bank.** Suppose the defender already leads by $d$. Write the remaining board as a disjoint bank $B$ and high pairs $(u_i,v_i)$, $u_i<v_i$. Put $W=\sum B$ and $E=\sum_i(v_i-u_i)$. The defender can hold whenever both inequalities below hold.
+$$
+W+E\le d,\qquad d+E\le x\quad\text{for every high token }x.
+$$
+If $W+E<d$, the defender wins. An opponent bank pick reduces $W$ and the defender's lead by the same amount. While any high pair remains, such a pick stays below the catch threshold. An opponent high pick $x$ passes the turn. The defender takes its mate $y$, which legally catches, and the new lead is $d+y-x$. The spread drops by $\lvert y-x\rvert $, preserving both inequalities, including a strict lower inequality when present. With only the bank left the opponent can score at most $W$. This gives a causal response for every opponent move, including several bank picks in one turn. The bank can have arbitrary gaps. [`bank_and_pairs` and the paired-interval theorem](CatchUpGame/ResearchLemmas.lean)
+
+In particular, when $n\le d$ and $d+n\le a$, the mover on $[a,a+2n-1]$ at deficit $d$ cannot win. Pair consecutive tokens. Along the path of successive minimum picks from an eligible prefix this proves the leading player's side at $([2k+1,4k],k)$ and $([2k+2,4k+3],k+1)$. The moving player's side requires a different argument. For example, on the paired board $\{6,7,10,11,13,14\}$ at deficit 3, the mover loses by 2 under optimal play. [Interval theorem](CatchUpGame/ResearchLemmas.lean) · [Exact margin calculator](scripts/research.py)
+
+**Only the maximum can save the mover on one infinite interval family.** For $n>0$ and $a\ge2n+1$, the mover on $[a,a+2n-1]$ at deficit $n$ loses after every pick below $a+2n-1$. Consequently the position draws if and only if picking the maximum holds. This includes the critical positions $([2k+1,4k],k)$ for the $4k$ prefixes.
+
+For the strict paired win used here, it suffices that $E<d$ and $d+E\le z+1$ for each remaining token $z$. Whenever there is a live pair its spread is at least one, so every opponent pick still reaches the threshold. If the mover chooses $x=a+2i$, reply with $x+1$. The new lead and total spread are $n+1$ and $n-1$. If the mover chooses a nonmaximum $x=a+2i+1$, reply with $x+2$ and pair $x-1$ with $x+1$. The other pairs remain adjacent, the lead becomes $n+2$, and the total spread is $n$. In both cases the revised pairing guarantees a strict win. The original paired-interval bound rules out a strict win for the mover at the root. What remains for a uniform **draw** in this interval family is a single move, whose odd-length child on the $4k$ branch is $([2k+1,4k-1],3k)$. This child draws for every $1\le k\le14$, covering the boundary inside the $N=52,56$ games as well. More precisely, for every $3\le k\le14$ all $2k-1$ picks on the child draw. Equivalently, removing any $x$ from $[2k+1,4k-1]$ gives a draw at deficit $\lvert 3k-x\rvert$. At $k=2$ the middle choice 6 loses, and the two endpoints draw. [`high_interval_only_max` and `high_interval_draw_iff_max`](CatchUpGame/ResearchLemmas.lean)
+
+**A density repair with explicit slack.** In $[1,M]$ there are $\lfloor(x-1)/2\rfloor$ disjoint pairs of distinct positive tokens summing to $x\le M$. If there are $h$ holes, then $x\ge2h+3$ suffices. Fewer holes than the number of pairs leave at least one pair $\{u,v\}$ intact after opening $x$. Taking $u$ then $v$ is legal and returns to equality. If $3\lvert S\rvert >2M+10$, the remaining board still satisfies $3\lvert R\rvert >2M+1$, since exactly three tokens were removed. This proves a defensive step for large openings sufficiently far above the density threshold. Small openings and the lowest density layers remain open. [`exact_pair_of_few_holes` and `dense_pair_repair`](CatchUpGame/ResearchLemmas.lean)
+
+For maximum exactly 29 the complete minimax table gives 5,848,754 draws in the strict density class. For maximum exactly 30 it gives 8,244,773. Across both layers there are zero wins and zero losses. At maximum 31 a further 11,482,544 qualifying boards all draw. The exhaustive nonempty density count through 31 is **30,214,299 draws and zero exceptions**. The new contiguous-bank layers at 29, 30, and 31 have 524,288, 1,048,576, and 2,097,152 draws and zero decisive boards, bringing that total to 4,727,058. Each board is classified at its own maximum. [Parity-packed minimax and density scan](scripts/closure.cpp)
+
+### Adaptive leads and the interval boundary
+
+For an absolute cap the smallest successful values are already close to the largest token. Each ordered pair below gives the minimum for P2 at the tied root and for P1 after opening 1. The exhaustive cap search allows all tied reentries.
+
+| $N$ | 3 | 4 | 7 | 8 | 11 | 12 | 15 | 16 | 19 | 20 | 23 | 24 | 27 | 28 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Minimum caps | 2,2 | 3,3 | 6,5 | 7,7 | 9,9 | 10,10 | 12,12 | 13,13 | 16,16 | 17,17 | 19,19 | 20,20 | 23,23 | 24,24 |
+
+A cap based on the *rank* of a remaining token behaves differently. At each handoff allow a lead up to the $r$-th smallest token remaining **after** the handoff. With fewer than $r$ tokens remaining, allow every lead. In the following test both players are evaluated separately as the designated defender, all tied reentries are available, and play continues under the rule to the terminal score. The fixed-point computation for this test uses **no ordinary minimax table**. Through 28 the two implementations agree wherever compared. [Bottom-up closure](scripts/closure.cpp) · [Top-down designated-player search](scripts/defense.cpp)
+
+| Rank | P2 from the tied start and P1 after opening 1 |
+|---:|---|
+| 3 | Both hold for every eligible $3\le N\le16$. At 19 only P1 holds. At 20 both fail. |
+| 4 | Both hold for every eligible $3\le N\le28$. Both fail at 31, 32, and 35. |
+| 5 | Both hold at 31, 32, and 35. |
+
+An independent bottom-up rank-four run on all $2^{30}$ even-sum boards in $[1,31]$ gives 989,377,738 tied members and confirms that both designated roles fail on the prefix. At $N=31$ the exact list of opponent openings that defeat P2's rank-four policy is $1,2,3,10,11,12$. The other 25 openings allow P2 to hold with the same cap. At 28 the numbers of tied boards accepted by the ungated rank-three and rank-four rules are 56,530,680 and 124,720,381, respectively, out of 134,217,728. The count includes opener losses where the policy succeeds. In the separate experiment restricted to ordinary drawn tied boards and allowing unrestricted strictly winning exits, ranks 1 through 6 accept 282,840, 29,365,887, 84,470,865, 126,378,608, 130,126,516, and 131,481,099 tied boards. The domain has 132,019,634 members including the empty board. [Full-board counts](scripts/closure.cpp) · [Opening-by-opening reproduction](scripts/defense.cpp)
+
+For $0<d\le a\le N$, put $R=[a,N]$. The theorem for a drawing $G(R,d)$ has three sufficient hypotheses.
+
+1. $G([a+1,N],a-d)$ draws. Picking $a$ then gives a drawing continuation.
+2. For $a<x<a+d$, the mover on $R\setminus\{x\}$ at deficit $x-d$ can hold.
+3. For $a+d\le x\le N$, the opener of the tied board $R\setminus\{x,x-d\}$ cannot win. The singleton $x-d$ is a legal exact reply.
+
+The second and third hypotheses prevent any strictly winning choice on $R$. Applying this at $(a,d)=(3,1)$ eliminates the entire short band in item 2. The composed Lean theorem `draw_of_two_offsets` proves sufficiency of a draw on $([4,N],2)$ and nonwinning tied boards $[a,N]\setminus\{x-1,x\}$ for $a=2,3$ and $a+1\le x\le N$. [Interval descent and its boundary specialization](CatchUpGame/ResearchLemmas.lean)
+
+On every eligible $11\le N\le28$ the $[3,N]$ adjacent-hole remainders all draw, and $G([4,N],2)$ draws. Applying one more descent at $(4,2)$ leaves just $x=5$ in the short band. All its hypotheses hold at 11 and at every eligible $15\le N\le28$. The new threshold queries also validate both layers at 31 and 32. At 12 exactly one tied distance-two removal wins. At 7 and 8 respectively, three and two adjacent-hole remainders for $a=3$ win. Thus an induction starting from 11 can handle the $[3,N]$ step, while the next layer already needs the exception at 12. [Exact interval query](scripts/retrograde.cpp)
+
+**New opening values.** Every opening draws at 39, 40, 43, and 44. Together with the earlier rows this covers every opening of every eligible prefix from 12 through 44. Round 1 had certified openings 1 and 2 at these sizes. The new fixed-player search verifies that P1 can hold after each of the other 37, 38, 41, and 42 openings, respectively. The scalar threshold solver independently replayed all the new openings at 39 and 40. A drawing root rules out a strict win from any opening, giving its exact value from this one bound. [Fixed-player opening search](scripts/defense.cpp)
+
+**The new full prefix at 48, independently verified.** Its total is 1,176. With scalar minimax at interior ties, increasing pick order, a 29-token packed suffix and a $2^{26}$-entry transposition table, the exact threshold search returned both `48 1 holds` and `48 2 holds`. This run took approximately 7 minutes 24 seconds from creation of its output file to its final row. The independent fixed-player solver, which tracks both absolute scores and uses a separate packed suffix recurrence, reproduced both holds in approximately 2 minutes 34 seconds. A separate attempt using an opening-reversal shortcut at interior ties and preferring singleton exact catches had spent more than 50 minutes on its first conditional check. These are different full configurations. Root opening reversal applies in both. If one of two distinct nonlosing openings won strictly, reversing the two first picks would make the other opening lose. Thus the full root draws. The same reversal shows that $G([3,48],1)$ draws. The reported root is a computer-assisted minimax result using the kernel-verified reversal theorem. [Threshold solver](scripts/threshold.cpp) · [Opening reversal](CatchUpGame/ResearchLemmas.lean)
+
+**The full prefix at 51 remains unresolved.** The 29-token scalar search spent over 30 minutes on opening 1. The independent fixed-player search with a 30-token suffix ran for over 22 minutes before the round cutoff. Neither search completed its first opening. The exact $N=51$ values below concern the indicated continuation.
+
+**Large-prefix search.** On the consecutive minimum-pick path the deficit at $[a,N]$ is $\lfloor a/2\rfloor$, since a pick of $a$ changes it to $a-\lfloor a/2\rfloor$. The table gives exact unrestricted values from the mover's perspective. The last two columns count failed hypotheses 2 and 3 above. A winning tied-removal entry records a failed *particular repair*, even if another legal repair succeeds. [Minimum-ray and opening searches](scripts/threshold.cpp)
+
+| $N$ | $a$ | $d$ | $G([a,N],d)$ | After taking $a$, next mover | Losing short-band children | Winning tied removals |
+|---:|---:|---:|:---:|:---:|---:|---:|
+| 48 | 20 | 10 | D | D | 0 | 0 |
+| 48 | 21 | 10 | D | D | 0 | 0 |
+| 48 | 22 | 11 | D | D | 0 | 3 |
+| 48 | 23 | 11 | D | W | 0 | 0 |
+| 48 | 24 | 12 | W | D | 11 | 13 |
+| 48 | 25 | 12 | D | W | 0 | 0 |
+| 51 | 26 | 13 | D | W | 0 | 0 |
+
+In particular, at $N=48$ an argument that always peels the minimum and demands a draw at every boundary fails at $a=24$. The complete winning list there is $25,\ldots,36$. Picking 24 draws, and picking any larger token from 37 through 48 loses. At $a=23$ the drawing choices are exactly $36,38,40,42,44,46,47,48$. At the two center positions $([25,48],12)$ and $([26,51],13)$ only the maximum draws. Independent fixed-player searches confirm the outcome column for $21\le a\le25$ at 48 and $a=26$ at 51. The paired-interval theorem supplies the leading player's half of the two center draws at $N=48,51$ directly.
+
+### Round 3 target
+
+**Prove the two-offset adjacent-hole reduction by a strategy that can change its reply at an exceptional boundary.** The precise target, for eligible $N\ge15$, consists of the one role-symmetric draw $G([4,N],2)=\mathrm{draw}$ together with the one-sided bound on $[a,N]\setminus\{x-1,x\}$ for $a\in\{2,3\}$. These are sufficient for the original conjecture. The smaller eligible cases already follow from the kernel proof through 12. Track the missing pair explicitly. A prospective induction can discharge a branch when the residual admits the bank-and-pairs inequalities and can use the density repair only where its slack inequality holds. On the $4k$ branch the critical high interval has just one candidate move, so the odd interval with one possible deletion gives a concrete base family for the induction. The necessary additional step is a response covering the short-band or near-minimum exceptions while preserving a strictly smaller member of the induction family. The win at $([24,48],12)$ is a concrete regression test for any claimed uniform descent.
+
+The October research handoff also singles out the lower ray and an exceptional boundary. Its recovery of a maximum companion assumes a nonempty, catchable smaller residual, and its two-buffer protocol still requires a uniform translation. It records a pair of adjacent-hole positions requiring different first repairs. This supports tracking the actual hole locations when using the new reduction. A separate October report describes kernel-checked examples through 16 and four open statements on unions of adjacent pairs tested within $[1,20]$. Neither source supplies the needed uniform response. [Research handoff](https://github.com/bocowgill-collaborations/catch-up-research/blob/main/docs/research-handoff.md) · [Daniel Puri, pp. 4–5](https://aixiv.online/pdf/2610.03026v1)
+
+### Reproduction and verification
+
+Build the tools from the project root. The maximum-31 profile and ungated rank scans each require an 8 GiB table. The 29-token opening searches use a 4 GiB suffix table plus a transposition cache. The fixed-point table can enumerate the state-by-state classes with the `--dump` option. The default fixed point restricts tied reentries to ordinarily drawn boards. The `--assume` option instead treats a tied reentry in the selected class as an induction hypothesis. The separate `--all-ties` mode removes the tied reentry restriction.
+
+```sh
+clang++ -O3 -march=native -std=c++17 scripts/closure.cpp -o /tmp/cu-closure
+clang++ -O3 -march=native -std=c++17 scripts/retrograde.cpp -o /tmp/cu-retro
+clang++ -O3 -march=native -std=c++17 scripts/threshold.cpp -o /tmp/cu-threshold
+clang++ -O3 -march=native -std=c++17 scripts/defense.cpp -o /tmp/cu-defense
+
+for n in 20 24 28; do
+  /tmp/cu-closure "$n" 0 --pure
+  for k in 1 2; do
+    /tmp/cu-closure "$n" "$k"
+    /tmp/cu-closure "$n" "$k" --isolated
+    /tmp/cu-closure "$n" "$k" --winning-exit
+    /tmp/cu-closure "$n" "$k" --isolated --winning-exit
+  done
+done
+for class in density brown both; do
+  /tmp/cu-closure 28 2 --isolated --assume "--$class"
+  /tmp/cu-closure 28 2 --isolated --assume "--$class" --winning-exit
+done
+for r in 1 2 3 4 5 6; do
+  /tmp/cu-closure 28 0 --rank "$r" --winning-exit
+done
+for k in $(seq 0 24); do /tmp/cu-closure 24 "$k" --all-ties; done
+for k in 22 23 24; do /tmp/cu-closure 28 "$k" --all-ties; done
+/tmp/cu-closure 28 0 --rank 3 --all-ties
+/tmp/cu-closure 31 0 --rank 4 --all-ties
+/tmp/cu-closure 31 0 --profiles
+/tmp/cu-retro 28 --bank
+/tmp/cu-retro 28 --intervals
+python3 -B scripts/round2.py audit /tmp/cu-closure 12
+python3 -B scripts/round2.py threshold /tmp/cu-threshold 12
+python3 -B scripts/round2.py banks /tmp/cu-threshold 7 12 --trials 300
+python3 -B scripts/research.py set 1 2 3 7 9 11 14 15 22
+python3 -B scripts/research.py position 3 6 7 10 11 13 14
+for n in 31 32; do
+  for r in 4 5; do
+    /tmp/cu-defense "$n" 23 "$n" --packed --rank "$r" --tied 1
+  done
+done
+for r in 4 5; do /tmp/cu-defense 35 26 35 --packed --rank "$r" --tied 1; done
+/tmp/cu-defense 31 23 31 --packed --rank 4 --defend $(seq 1 31)
+/tmp/cu-defense 39 26 39 --packed $(seq 3 39)
+/tmp/cu-defense 40 25 40 --packed $(seq 3 40)
+/tmp/cu-defense 43 27 43 --packed $(seq 3 43)
+/tmp/cu-defense 44 27 44 --packed $(seq 3 27)
+/tmp/cu-defense 44 29 44 --packed $(seq 28 44)
+/tmp/cu-threshold --plain-ties --small-first --endgame 24 --cache-bits 24 --opening-range 3 39 39
+/tmp/cu-threshold --plain-ties --small-first --endgame 25 --cache-bits 24 --opening-range 3 40 40
+for k in $(seq 1 14); do
+  /tmp/cu-threshold --set --plain-ties --small-first --cache-bits 18 --endgame $((2*k-1)) --pick-values --gap $((3*k)) $(seq $((2*k+1)) $((4*k-1)))
+done
+/tmp/cu-threshold --small-first --prefer-exact --pair-cuts --endgame 22 --ray 3 4 31 32
+/tmp/cu-threshold --small-first --plain-ties --endgame 26 --ray-moves 23 25 48
+/tmp/cu-threshold --small-first --plain-ties --endgame 26 --ray-moves 26 26 51
+/tmp/cu-defense 48 28 48 --packed --ray-positions 21 25
+/tmp/cu-defense 51 26 51 --packed --ray-positions 26 26
+/tmp/cu-threshold --small-first --prefer-exact --endgame 27 --ray 20 25 48
+/tmp/cu-threshold --small-first --prefer-exact --pair-cuts --endgame 26 --ray 26 26 51
+
+# The two nonlosing openings certify the unrestricted root.
+/tmp/cu-threshold --plain-ties --small-first --endgame 29 --cache-bits 26 --two 48
+/tmp/cu-defense 48 29 48 --packed 1 2
+
+# Round 2 search for the next eligible root.
+/tmp/cu-threshold --plain-ties --small-first --endgame 29 --cache-bits 26 --two 51
+/tmp/cu-defense 51 30 51 --packed 1 2
+
+lake build
+python3 -B scripts/audit.py
+```
+
+The independent Python check compares both role bits at 26,624 parity-compatible states through maximum 12 for each of nine configurations. It enumerates completed turns with the largest selected token last. The C++ closure works one pick at a time. A second test verifies conditional openings, each minimum-ray column, all 4,096 ordinary tied outcomes through maximum 12 with the new bank-and-pairs cutoff enabled, and every single-pick value on the full 12-token board at deficits 0 through 12. Larger fixed points and interval evaluations are exact computer searches. A further comparison with full-turn minimax tests the maximum-only search rule on 18 high intervals, including examples on each side of its hypothesis. The universal cap classification, the positive reservoir class, the maximum-only theorem, and the conditional interval reductions are checked by the Lean kernel. [Independent checks](scripts/round2.py) · [Axiom audit](scripts/audit.py)
+
+The final Lean 4.36.0 build succeeded. The audit inspected all 71 public research declarations, including the 25 added in this round. Their axiom dependencies are contained in `propext`, `Classical.choice`, and `Quot.sound`. The project source passed the placeholder and native-proof scan. The frozen target had SHA-256 `0c7b6e8f75bde1c74259441029e6abe935610064d7748cd93bb28460ccbb5df3` both before and after the round. The original 33,107 report bytes retain SHA-256 `53ccf38600a204ebf498ea94d21b4519093e6709196f3d5292b2db4a63cb9d86`.

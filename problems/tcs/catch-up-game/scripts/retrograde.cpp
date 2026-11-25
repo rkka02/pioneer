@@ -156,16 +156,71 @@ static void dense_openings(const Row *table, int n) {
     }
 }
 
+static void bank_census(const Row *table, int n) {
+    std::array<std::array<std::uint64_t, 4>,3> count{};
+    std::array<std::array<Bits, 2>,3> example{};
+    for (Bits mask=1; mask<(Bits{1}<<n); mask+=2) {
+        if (__builtin_parity(mask & 0x55555555u)) continue;
+        const int top=32-__builtin_clz(mask);
+        int covered=0, consecutive=0;
+        for (Bits m=mask & ~(Bits{1} << (top-1)); m && covered<top; m&=m-1) {
+            const int x=__builtin_ctz(m)+1;
+            if (x>covered+1) break;
+            covered+=x;
+            if (x==consecutive+1) consecutive=x;
+        }
+        const std::array<bool,3> inside{covered>=top-1,covered>=top,consecutive*(consecutive+1)/2>=top};
+        const char v=outcome(table[mask],0);
+        const int col=v=='W'?0:v=='D'?1:2;
+        for (int j=0;j<3;++j) if (inside[j]) {
+            ++count[j][col];
+            if (outcome(table[mask^1],1)=='W') ++count[j][3];
+            if (col!=1 && !example[j][col==2]) example[j][col==2]=mask;
+        }
+    }
+    for (int j=0;j<3;++j) {
+        std::cout<<std::array<const char*,3>{"Brown","bank","prefix_bank"}[j];
+        for (auto x:count[j]) std::cout<<'\t'<<x;
+        for (auto m:example[j]) std::cout<<'\t'<<m;
+        std::cout<<'\n';
+    }
+}
+
+// Check the hypotheses of interval_deficit_descent for [3,N] and [4,N].
+static void interval_report(const Row *table, int n) {
+    if (n < 4 || (n*(n+1)/2)%2) return;
+    const Bits full=(Bits{1}<<n)-1;
+    const auto token=[](int x) { return Bits{1}<<(x-1); };
+    std::cout << n;
+    for (int a : {3,4}) {
+        const int d=a-2;
+        const Bits s=full & ~(token(a)-1);
+        std::cout << '\t' << outcome(table[s],d) << '\t' << outcome(table[s^token(a)],a-d);
+        if (a==4 && n>=5) std::cout << '\t' << outcome(table[s^token(5)],3);
+        else std::cout << "\t-";
+        std::array<int,3> count{};
+        for (int x=a+d;x<=n;++x) {
+            const char v=outcome(table[s^token(x)^token(x-d)],0);
+            ++count[v=='W'?0:v=='D'?1:2];
+        }
+        for (int total:count) std::cout << '\t' << total;
+    }
+    std::cout << std::endl;
+}
+
 int main(int argc, char **argv) {
     try {
         if (argc < 2 || argc > 3)
-            throw std::runtime_error("usage: retrograde N [--dump|--anchors|--census|--density]");
+            throw std::runtime_error("usage: retrograde N [--dump|--anchors|--census|--density|--bank|--intervals]");
         const int n = std::stoi(argv[1]);
         if (n < 0 || n > 28) throw std::runtime_error("N must be 0..28 (2 GiB for N=28)");
         const std::string mode = argc == 3 ? argv[2] : "";
         const bool dump = mode == "--dump", anchors = mode == "--anchors", tally = mode == "--census";
         const bool dense = mode == "--density";
-        if (!mode.empty() && !dump && !anchors && !tally && !dense) throw std::runtime_error("unknown option");
+        const bool banks = mode == "--bank";
+        const bool intervals=mode=="--intervals";
+        if (!mode.empty() && !dump && !anchors && !tally && !dense && !banks && !intervals)
+            throw std::runtime_error("unknown option");
         const Bits end = Bits{1} << n;
         std::unique_ptr<Row[]> table(new Row[end]);
         table[0] = {0, ~Bits{1}}; // An empty board draws at zero and loses at positive deficits.
@@ -184,13 +239,16 @@ int main(int argc, char **argv) {
                 best.loss &= loss;
             }
             table[mask] = best;
-            if ((mode.empty() || anchors) && !(mask & (mask + 1))) {
+            if ((mode.empty() || anchors || intervals) && !(mask & (mask + 1))) {
                 const int size = __builtin_popcount(mask);
-                if (anchors) anchor_report(table.get(), size); else prefix(table.get(), size);
+                if (anchors) anchor_report(table.get(), size);
+                else if (intervals) interval_report(table.get(), size);
+                else prefix(table.get(), size);
             }
         }
         if (tally) census(table.get(), n);
         if (dense) dense_openings(table.get(), n);
+        if (banks) bank_census(table.get(), n);
         if (dump) {
             for (Bits mask = 0; mask < end; ++mask) {
                 std::cout << mask << '\t';

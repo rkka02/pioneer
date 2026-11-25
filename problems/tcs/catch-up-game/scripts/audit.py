@@ -26,7 +26,7 @@ def main():
             raise SystemExit(f"Unexpected proof placeholder, shortcut or axiom declaration in {path}")
     subprocess.run(["lake", "build"], cwd=ROOT, check=True)
     names = ["CatchUpGame.Research." + name for name in re.findall(
-        r"^(?:noncomputable )?(?:theorem|def) (\w+)", source, re.MULTILINE)]
+        r"^(?:noncomputable )?(?:theorem|def|inductive) (\w+)", source, re.MULTILINE)]
     if not names:
         raise SystemExit("No public declarations found")
     commands = ["import CatchUpGame",

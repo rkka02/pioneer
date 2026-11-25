@@ -8,6 +8,7 @@
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -18,6 +19,10 @@ class Solver {
     std::vector<Word> cache;
     unsigned gap_bits = 1;
     bool small_first;
+    bool prefer_exact = false;
+    bool use_pairs = false;
+    bool inner_reversal = true;
+    std::array<Word, 64> by_weight{};
     using Gaps = std::uint32_t;
     struct Endgame { Gaps wins, losses; };
     unsigned initial_parity = 0;
@@ -77,6 +82,30 @@ class Solver {
     }
 
     static int high(Word mask) { return 63 - __builtin_clzll(mask); }
+    // A low bank can be prepaid from the lead. Against every remaining high
+    // pick, its consecutive sorted mate suffices if the total spread fits.
+    int paired_surplus(Word mask, int gap) const {
+        std::int64_t bank_sum=0;
+        int count=__builtin_popcountll(mask), best=-1;
+        while (mask && bank_sum+count/2<=gap) {
+            const int first=weights[__builtin_ctzll(mask)];
+            if (count%2==0 && first>=std::int64_t(gap)+count/2) {
+                std::int64_t spread=0;
+                for (Word high_tokens=mask; high_tokens;) {
+                    const int a=weights[__builtin_ctzll(high_tokens)];
+                    high_tokens &= high_tokens-1;
+                    spread+=weights[__builtin_ctzll(high_tokens)]-a;
+                    high_tokens &= high_tokens-1;
+                }
+                const std::int64_t surplus=gap-bank_sum-spread;
+                if (first>=gap+spread && surplus>=0) best=std::max(best,static_cast<int>(surplus));
+            }
+            bank_sum+=first;
+            mask &= mask-1;
+            --count;
+        }
+        return best;
+    }
     static Word hash(Word key) {
         key ^= key >> 30;
         key *= UINT64_C(0xbf58476d1ce4e5b9);
@@ -85,14 +114,18 @@ class Solver {
     }
 
 public:
-    Solver(std::vector<int> w, int cache_bits, bool small, int end_count, int starting_gap = 0)
-        : weights(std::move(w)), cache(Word{1} << cache_bits), small_first(small) {
+    Solver(std::vector<int> w, int cache_bits, bool small, int end_count, int starting_gap = 0,
+           bool exact_first = false, bool paired = false, bool reverse_ties = true)
+        : weights(std::move(w)), cache(Word{1} << cache_bits), small_first(small), prefer_exact(exact_first),
+          use_pairs(paired), inner_reversal(reverse_ties) {
         const int bound = weights.empty() ? starting_gap : std::max(weights.back(), starting_gap);
         while ((Word{1} << gap_bits) <= static_cast<Word>(bound)) ++gap_bits;
         initial_parity = starting_gap & 1;
         if (end_count && starting_gap > 62) throw std::runtime_error("packed suffix tables require deficit <= 62");
         if (weights.size() + gap_bits + 2 > 64)
             throw std::runtime_error("weights and subset mask exceed the 64-bit cache key");
+        for (std::size_t i = 0; i < weights.size(); ++i)
+            if (weights[i] < 64) by_weight[weights[i]] = Word{1} << i;
         build_endgame(end_count);
     }
 
@@ -111,7 +144,42 @@ public:
         if ((entry >> 1) == key) return (entry & 1) != 0;
 
         Word moves = mask;
-        if (strict && gap == 0 && (mask & (mask-1))) {
+        if (use_pairs && gap>0) {
+            const int low=weights[__builtin_ctzll(mask)], top=weights[high(mask)];
+            const int count=__builtin_popcountll(mask);
+            // high_interval_only_max: at the critical deficit every other
+            // opening on a consecutive high interval has a strict refutation.
+            if (count==2LL*gap && low>=count+1 && std::int64_t(top)-low+1==count) {
+                const bool held=!strict && !reaches(mask^(Word{1}<<high(mask)),top-gap,sum-top,true);
+                entry=(key<<1)|held;
+                return held;
+            }
+            const int surplus=paired_surplus(mask,gap);
+            if (surplus>0 || (surplus==0 && strict)) {
+                entry=key<<1;
+                return false;
+            }
+            if (surplus==0) {
+                const int top=high(mask), x=weights[top];
+                const Word bit=Word{1}<<top;
+                if (x>=gap && !reaches(mask^bit,x-gap,sum-x,true)) {
+                    entry=(key<<1)|1;
+                    return true;
+                }
+                if (x>=gap) moves^=bit;
+            }
+        }
+        if (prefer_exact && !strict && gap > 0 && gap < 64) {
+            const Word exact = moves & by_weight[gap];
+            if (exact) {
+                if (!reaches(mask ^ exact, 0, sum-gap, true)) {
+                    entry = (key << 1) | 1;
+                    return true;
+                }
+                moves ^= exact;
+            }
+        }
+        if (inner_reversal && strict && gap == 0 && (mask & (mask-1))) {
             // A non-losing opening excludes a strict win from every other opening.
             const int i = small_first ? __builtin_ctzll(mask) : high(mask);
             const Word bit = Word{1} << i, rest = mask ^ bit;
@@ -208,21 +276,81 @@ public:
         if (!std::cin.eof()) throw std::runtime_error("expected decimal subset masks");
     }
 
-    void position(int d) {
+    void position(int d, bool list_picks=false) {
         const Word mask = (Word{1} << weights.size())-1;
         const auto sum = std::accumulate(weights.begin(), weights.end(), std::int64_t{0});
         std::cout << weights.size() << '\t' << sum << '\t' << d << '\t'
-                  << value_at(mask, d, sum) << std::endl;
+                  << value_at(mask, d, sum);
+        if (list_picks) {
+            std::cout << '\t';
+            for (std::size_t i=0; i<weights.size(); ++i) {
+                const int x=weights[i];
+                const char v=value_at(mask^(Word{1}<<i),std::abs(d-x),sum-x);
+                std::cout << (x<d?v:v=='W'?'L':v=='L'?'W':'D');
+            }
+        }
+        std::cout << std::endl;
     }
 
-    void first_two() {
-        if (weights.size() < 2) throw std::runtime_error("two openings required");
+    void opening_range(int first, int last) {
+        if (first<1 || first>last || last>int(weights.size()))
+            throw std::runtime_error("opening indices outside the supplied set");
         const Word mask = (Word{1} << weights.size()) - 1;
         const auto sum = std::accumulate(weights.begin(), weights.end(), std::int64_t{0});
-        for (int i = 0; i < 2; ++i) {
+        for (int i = first-1; i < last; ++i) {
             const int x = weights[i];
             const bool holds = !reaches(mask ^ (Word{1} << i), x, sum - x, true);
             std::cout << weights.size() << '\t' << x << '\t' << (holds ? "holds" : "fails") << std::endl;
+        }
+    }
+
+    void certify_opening(int a, int boundary, int low, int high_reply) {
+        const int n = weights.size();
+        if (a < 1 || a > n || boundary < 1 || boundary > n || a == boundary)
+            throw std::runtime_error("choose distinct opening and boundary tokens within the prefix");
+        const Word full = (Word{1} << n)-1;
+        const int sum = n*(n+1)/2;
+        for (int b = std::max(1,low); b <= std::min(n,high_reply); ++b) {
+            if (b == a) continue;
+            const Word rest = full ^ (Word{1} << (a-1)) ^ (Word{1} << (b-1));
+            const int d = std::abs(b-a), total = sum-a-b;
+            const bool lower = a < b;
+            const bool holds = lower ? reaches(rest,d,total,false) : !reaches(rest,d,total,true);
+            std::cout << n << '\t' << a << '\t' << b << "\tP1\t" << holds << std::endl;
+            if (b == boundary) {
+                const bool other = lower ? !reaches(rest,d,total,true) : reaches(rest,d,total,false);
+                std::cout << n << '\t' << a << '\t' << b << "\tP2\t" << other << std::endl;
+            }
+        }
+    }
+
+    // Consecutive minimum picks give gap floor(a/2) at the remaining [a,n].
+    // Check every hypothesis of the one-step interval lemma at each layer.
+    void minimum_ray(int lo, int hi, bool list_moves) {
+        const int n=weights.size();
+        if (lo<2 || hi>n || lo>hi || (n*(n+1)/2)%2)
+            throw std::runtime_error("ray needs an even-total prefix and 2 <= lo <= hi <= N");
+        const auto token=[](int x) { return Word{1}<<(x-1); };
+        for (int a=hi; a>=lo; --a) {
+            const int d=a/2, sum=(n-a+1)*(n+a)/2;
+            const Word s=((Word{1}<<n)-1) ^ (token(a)-1);
+            if (list_moves) {
+                std::cout << n << '\t' << a << '\t' << d << '\t';
+                for (int x=a; x<=n; ++x) {
+                    const char next=value_at(s^token(x),x-d,sum-x);
+                    std::cout << (next=='W'?'L':next=='L'?'W':'D');
+                }
+                std::cout << std::endl;
+                continue;
+            }
+            const char root=value_at(s,d,sum), boundary=value_at(s^token(a),a-d,sum-a);
+            int bad_band=0, bad_ties=0;
+            for (int x=a+1; x<=n; ++x) {
+                if (x<a+d) bad_band+=!reaches(s^token(x),x-d,sum-x,false);
+                else bad_ties+=reaches(s^token(x)^token(x-d),0,sum-2*x+d,true);
+            }
+            std::cout << n << '\t' << a << '\t' << d << '\t' << root << '\t' << boundary
+                      << '\t' << bad_band << '\t' << bad_ties << std::endl;
         }
     }
 
@@ -247,12 +375,26 @@ public:
 int main(int argc, char **argv) {
     try {
         bool small = false, custom = false, two = false, roots = false, anchors = false, masks = false;
+        bool exact_first = false, batch = false, paired=false, inner_reversal=true, ray_moves=false, list_picks=false;
+        int opening = 0, boundary = 0, low = 1, high_reply = 63, ray_lo=0, ray_hi=0;
+        int first_index=1, last_index=2;
         int cache_bits = 22, end_count = 0, starting_gap = -1;
         std::vector<int> args;
         for (int i = 1; i < argc; ++i) {
             const std::string arg = argv[i];
             if (arg == "--small-first") small = true;
+            else if (arg == "--prefer-exact") exact_first = true;
+            else if (arg == "--pair-cuts") paired=true;
+            else if (arg == "--plain-ties") inner_reversal=false;
+            else if (arg == "--batch-sets") batch = true;
+            else if (arg == "--opening" && i+2 < argc) { opening = std::stoi(argv[++i]); boundary = std::stoi(argv[++i]); }
+            else if (arg == "--replies" && i+2 < argc) { low = std::stoi(argv[++i]); high_reply = std::stoi(argv[++i]); }
+            else if (arg == "--ray" && i+2 < argc) { ray_lo=std::stoi(argv[++i]); ray_hi=std::stoi(argv[++i]); }
+            else if (arg == "--ray-moves" && i+2 < argc) {
+                ray_moves=true; ray_lo=std::stoi(argv[++i]); ray_hi=std::stoi(argv[++i]);
+            }
             else if (arg == "--set") custom = true;
+            else if (arg == "--pick-values") list_picks=true;
             else if (arg == "--gap" && i+1 < argc) {
                 starting_gap = std::stoi(argv[++i]);
                 if (starting_gap < 0) throw std::runtime_error("a deficit must be nonnegative");
@@ -261,24 +403,43 @@ int main(int argc, char **argv) {
             else if (arg == "--roots") roots = true;
             else if (arg == "--masks") masks = true;
             else if (arg == "--two") two = true;
+            else if (arg=="--opening-range" && i+2<argc) {
+                two=true; first_index=std::stoi(argv[++i]); last_index=std::stoi(argv[++i]);
+            }
             else if (arg == "--endgame" && i + 1 < argc) end_count = std::stoi(argv[++i]);
             else if (arg == "--cache-bits" && i + 1 < argc) cache_bits = std::stoi(argv[++i]);
             else args.push_back(std::stoi(arg));
         }
-        if (end_count < 0 || end_count > 28) throw std::runtime_error("endgame size must be 0..28");
+        if (end_count < 0 || end_count > 30) throw std::runtime_error("endgame size must be 0..30");
         if (cache_bits < 0 || cache_bits > 28) throw std::runtime_error("cache bits must be 0..28");
+        if (list_picks && starting_gap<0) throw std::runtime_error("--pick-values requires a starting --gap");
         for (int x : args) if (x < 0) throw std::runtime_error("nonnegative inputs required");
-        if (custom && anchors) throw std::runtime_error("anchor tests use consecutive prefixes");
+        if (custom && (anchors || opening || ray_lo)) throw std::runtime_error("prefix geometry requires consecutive weights");
         if (masks && !custom && args.size() != 1) throw std::runtime_error("mask input requires one universe");
-        if (custom) {
+        if (batch) {
+            if (!args.empty() || end_count || custom) throw std::runtime_error("batch input uses sets on stdin and no suffix table");
+            std::string line;
+            while (std::getline(std::cin,line)) {
+                std::istringstream in(line);
+                std::vector<int> w;
+                int x;
+                while (in >> x) w.push_back(x);
+                if (!in.eof() || !std::is_sorted(w.begin(),w.end()) ||
+                    std::adjacent_find(w.begin(),w.end())!=w.end() || (!w.empty() && w.front()<1))
+                    throw std::runtime_error("expected an increasing set of positive integers per line");
+                Solver solver(w,cache_bits,small,0,0,exact_first,paired,inner_reversal);
+                const auto total=std::accumulate(w.begin(),w.end(),std::int64_t{0});
+                std::cout << solver.tied_value((Word{1}<<w.size())-1,total) << '\n';
+            }
+        } else if (custom) {
             std::sort(args.begin(), args.end());
             if (std::adjacent_find(args.begin(), args.end()) != args.end())
                 throw std::runtime_error("a set must contain distinct weights");
-            Solver solver(args, cache_bits, small, end_count, std::max(0, starting_gap));
-            if (starting_gap >= 0) solver.position(starting_gap);
+            Solver solver(args, cache_bits, small, end_count, std::max(0, starting_gap), exact_first, paired,inner_reversal);
+            if (starting_gap >= 0) solver.position(starting_gap,list_picks);
             else if (masks) solver.read_masks();
             else if (roots) solver.all_roots();
-            else if (two) solver.first_two();
+            else if (two) solver.opening_range(first_index,last_index);
             else solver.report();
         } else {
             if (args.empty()) throw std::runtime_error("supply prefix sizes, or --set followed by weights");
@@ -286,12 +447,14 @@ int main(int argc, char **argv) {
                 if (n > 63) throw std::runtime_error("prefix too large for subset mask");
                 std::vector<int> weights(n);
                 std::iota(weights.begin(), weights.end(), 1);
-                Solver solver(weights, cache_bits, small, end_count, std::max(0, starting_gap));
-                if (starting_gap >= 0) solver.position(starting_gap);
+                Solver solver(weights, cache_bits, small, end_count, std::max(0, starting_gap), exact_first, paired,inner_reversal);
+                if (starting_gap >= 0) solver.position(starting_gap,list_picks);
+                else if (opening) solver.certify_opening(opening, boundary, low, high_reply);
+                else if (ray_lo) solver.minimum_ray(ray_lo,ray_hi,ray_moves);
                 else if (masks) solver.read_masks();
                 else if (anchors) solver.anchor_tests();
                 else if (roots) solver.all_roots();
-                else if (two) solver.first_two();
+                else if (two) solver.opening_range(first_index,last_index);
                 else solver.report();
             }
         }

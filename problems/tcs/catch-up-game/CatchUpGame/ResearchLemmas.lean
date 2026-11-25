@@ -1,6 +1,8 @@
 import CatchUpGame.Challenge
 import Mathlib.Algebra.Order.Group.Abs
 import Mathlib.Algebra.Order.Group.Int
+import Mathlib.Data.Finset.Max
+import Mathlib.Data.Finset.Powerset
 
 namespace CatchUpGame.Research
 
@@ -776,5 +778,812 @@ theorem hold_by_exact_subset {t s : Finset ℕ} (ht : t ⊆ s) (hne : t.Nonempty
       have taken := (gap_loss_iff s ⟨x,hxs⟩ _).mp lose x hxs
       have hlt : x < x + t.sum id := by omega
       exact safe (by simpa only [pick, hlt, ite_true, Nat.add_sub_cancel_left] using taken)
+
+
+/-- A designated defender stays within K after every completed turn, including
+the last. The Boolean identifies whose turn it is. The opponent is unrestricted. -/
+inductive Capped (K : ℕ) : Finset ℕ → ℕ → Bool → Prop
+  | terminal : Capped K ∅ 0 true
+  | keep {s : Finset ℕ} {d x : ℕ} : x ∈ s → x < d → Capped K (s.erase x) (d-x) true → Capped K s d true
+  | pass {s : Finset ℕ} {d x : ℕ} : x ∈ s → d ≤ x → x-d ≤ K →
+      Capped K (s.erase x) (x-d) false → Capped K s d true
+  | against {s : Finset ℕ} {d : ℕ} :
+      (∀ x ∈ s, x < d → Capped K (s.erase x) (d-x) false) →
+      (∀ x ∈ s, d ≤ x → Capped K (s.erase x) (x-d) true) → Capped K s d false
+
+theorem capped_sound {K d : ℕ} {s : Finset ℕ} {side : Bool} (h : Capped K s d side) :
+    if side then gapValue s d ≠ .loss else gapValue s d ≠ .win := by
+  induction h with
+  | terminal => simp [gap_empty]
+  | @keep s d x hx hlt _ ih =>
+    intro hl
+    have step := (gap_loss_iff _ ⟨x,hx⟩ _).mp hl x hx
+    exact ih (by simpa [pick,hlt] using step)
+  | @pass s d x hx hle _ _ ih =>
+    intro hl
+    have step := (gap_loss_iff _ ⟨x,hx⟩ _).mp hl x hx
+    simp only [pick,Nat.not_lt_of_ge hle,ite_false] at step
+    cases hv : gapValue (s.erase x) (x-d) <;> simp_all [Outcome.neg]
+  | @against s d _ _ ihk ihp =>
+    intro hw
+    rcases s.eq_empty_or_nonempty with rfl | hn
+    · cases d <;> simp [gap_empty] at hw
+    obtain ⟨x,hx,h⟩ := (gap_win_iff _ hn _).mp hw
+    by_cases hlt : x < d
+    · exact ihk x hx hlt (by simpa [pick,hlt] using h)
+    · have ih := ihp x hx (Nat.le_of_not_gt hlt)
+      simp only [pick,hlt,ite_false] at h
+      cases hv : gapValue (s.erase x) (x-d) <;> simp_all [Outcome.neg]
+
+private theorem cap_keep {K d x : ℕ} {s : Finset ℕ} (h : Capped K s d false)
+    (hx : x ∈ s) (hlt : x < d) : Capped K (s.erase x) (d-x) false := by
+  cases h with | against keep _ => exact keep x hx hlt
+
+private theorem cap_pass {K d x : ℕ} {s : Finset ℕ} (h : Capped K s d false)
+    (hx : x ∈ s) (hle : d ≤ x) : Capped K (s.erase x) (x-d) true := by
+  cases h with | against _ pass => exact pass x hx hle
+
+private theorem cap_defend {K d : ℕ} {s : Finset ℕ} (hn : s.Nonempty) (h : Capped K s d true) :
+    ∃ x ∈ s, (x < d ∧ Capped K (s.erase x) (d-x) true) ∨
+      (d ≤ x ∧ x-d ≤ K ∧ Capped K (s.erase x) (x-d) false) := by
+  cases h with
+  | terminal => simp at hn
+  | keep hx hlt h => exact ⟨_,hx,Or.inl ⟨hlt,h⟩⟩
+  | pass hx hle hk h => exact ⟨_,hx,Or.inr ⟨hle,hk,h⟩⟩
+
+private theorem cap_empty_def {K d : ℕ} (h : Capped K ∅ d true) : d = 0 := by
+  cases h <;> simp_all
+
+private theorem cap_single_opp {K d x : ℕ} (h : Capped K {x} d false) : x ≤ d := by
+  by_contra! hlt
+  have he := cap_pass h (Finset.mem_singleton_self x) hlt.le
+  rw [Finset.erase_singleton] at he
+  have := cap_empty_def he
+  omega
+
+private theorem cap_single_def {K d x : ℕ} (h : Capped K {x} d true) : d ≤ x ∧ x-d ≤ K := by
+  obtain ⟨a,ha,ht⟩ := cap_defend (Finset.singleton_nonempty x) h
+  obtain rfl := Finset.mem_singleton.mp ha
+  rcases ht with ⟨hlt,h'⟩ | ⟨hle,hk,_⟩
+  · rw [Finset.erase_singleton] at h'
+    have := cap_empty_def h'; omega
+  · exact ⟨hle,hk⟩
+
+private theorem cap_minimum {K d m : ℕ} {s : Finset ℕ} (hs : Capped K s d false)
+    (hm : m ∈ s) (hmin : ∀ y ∈ s, m ≤ y) (hd : d ≤ m) :
+    (s = {m} ∧ m = d) ∨
+      ∃ y ∈ s.erase m, m < y ∧ y-(m-d) ≤ K ∧ Capped K ((s.erase m).erase y) (y-(m-d)) false := by
+  have h := cap_pass hs hm hd
+  rcases (s.erase m).eq_empty_or_nonempty with he | hn
+  · rw [he] at h
+    have hz := cap_empty_def h
+    left
+    refine ⟨?_,by omega⟩
+    simpa [he] using (Finset.insert_erase hm).symm
+  · obtain ⟨y,hy,ht⟩ := cap_defend hn h
+    obtain ⟨hne,hmem⟩ := Finset.mem_erase.mp hy
+    have hlt : m < y := lt_of_le_of_ne (hmin y hmem) hne.symm
+    rcases ht with ⟨hbad,_⟩ | ⟨_,hk,hnext⟩
+    · omega
+    · exact Or.inr ⟨y,hy,hlt,hk,hnext⟩
+
+private theorem cap_far_pair {a b d : ℕ} (ha0 : 0 < a) (hab : a+2 ≤ b) (hd : d ≤ 2)
+    (h : Capped 2 {a,b} d false) : False := by
+  have hn : a ≠ b := by omega
+  have he : ({a,b} : Finset ℕ).erase b = {a} := by simp [Finset.erase_insert_of_ne,hn]
+  have hb := cap_pass h (show b ∈ ({a,b} : Finset ℕ) by simp) (by omega)
+  rw [he] at hb
+  have hb' := cap_single_def hb
+  have he' : ({a,b} : Finset ℕ).erase a = {b} := by simp [hn]
+  by_cases ha : a < d
+  · have u := cap_keep h (by simp : a ∈ ({a,b} : Finset ℕ)) ha
+    rw [he'] at u
+    have := cap_single_opp u; omega
+  · have u := cap_pass h (by simp : a ∈ ({a,b} : Finset ℕ)) (by omega)
+    rw [he'] at u
+    have := cap_single_def u; omega
+
+private theorem cap_bad_triple {a : ℕ} (ha : 2 ≤ a) (h : Capped 2 {1,a,a+1} 2 false) : False := by
+  have u := cap_pass h (by simp : a ∈ ({1,a,a+1} : Finset ℕ)) ha
+  have he : ({1,a,a+1} : Finset ℕ).erase a = {1,a+1} := by
+    ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+  rw [he] at u
+  obtain ⟨x,hx,ht⟩ := cap_defend (show ({1,a+1} : Finset ℕ).Nonempty by simp) u
+  simp only [Finset.mem_insert,Finset.mem_singleton] at hx
+  rcases hx with hx | hx <;> subst x
+  · have he' : ({1,a+1} : Finset ℕ).erase 1 = {a+1} := by ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+    rcases ht with ⟨_,hnext⟩ | ⟨_,_,hnext⟩ <;> rw [he'] at hnext
+    · have := cap_single_def hnext; omega
+    · have := cap_single_opp hnext; omega
+  · rcases ht with ⟨_,_⟩ | ⟨_,_,_⟩ <;> omega
+
+private theorem cap_bad_quad {a b : ℕ} (ha : 0 < a) (hab : a+1 < b)
+    (h : Capped 2 {a,a+1,b,b+1} 0 false) : False := by
+  have u := cap_pass h (by simp : a+1 ∈ ({a,a+1,b,b+1} : Finset ℕ)) (Nat.zero_le _)
+  have he : ({a,a+1,b,b+1} : Finset ℕ).erase (a+1) = {a,b,b+1} := by
+    ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+  rw [he,Nat.sub_zero] at u
+  obtain ⟨x,hx,ht⟩ := cap_defend (show ({a,b,b+1} : Finset ℕ).Nonempty by simp) u
+  simp only [Finset.mem_insert,Finset.mem_singleton] at hx
+  rcases hx with hx | hx | hx <;> subst x
+  · rcases ht with ⟨_,hk⟩ | ⟨_,_,_⟩
+    · have he' : ({a,b,b+1} : Finset ℕ).erase a = {b,b+1} := by ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+      rw [he',show a+1-a=1 by omega] at hk
+      obtain ⟨z,hz,hs⟩ := cap_defend (show ({b,b+1} : Finset ℕ).Nonempty by simp) hk
+      simp only [Finset.mem_insert,Finset.mem_singleton] at hz
+      rcases hz with hz | hz <;> subst z <;> rcases hs with ⟨_,_⟩ | ⟨_,hc,hn⟩
+      · omega
+      · have he'' : ({b,b+1} : Finset ℕ).erase b = {b+1} := by simp
+        rw [he''] at hn
+        have := cap_single_opp hn; omega
+      · omega
+      · have he'' : ({b,b+1} : Finset ℕ).erase (b+1) = {b} := by simp [Finset.erase_insert_of_ne]
+        rw [he''] at hn
+        have := cap_single_opp hn; omega
+    · omega
+  · rcases ht with ⟨_,_⟩ | ⟨_,hc,hn⟩
+    · omega
+    · have he' : ({a,b,b+1} : Finset ℕ).erase b = {a,b+1} := by ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+      rw [he'] at hn
+      exact cap_far_pair ha (by omega) hc hn
+  · rcases ht with ⟨_,_⟩ | ⟨_,hc,hn⟩
+    · omega
+    · have he' : ({a,b,b+1} : Finset ℕ).erase (b+1) = {a,b} := by ext z; simp only [Finset.mem_erase,Finset.mem_insert,Finset.mem_singleton]; omega
+      rw [he'] at hn
+      exact cap_far_pair ha (by omega) hc hn
+
+private theorem cap_bad_tied_pair {a b K : ℕ} (hab : a < b) (h : Capped K {a,b} 0 false) : False := by
+  have u := cap_pass h (by simp : b ∈ ({a,b} : Finset ℕ)) (Nat.zero_le _)
+  have he : ({a,b} : Finset ℕ).erase b = {a} := by simp [Finset.erase_insert_of_ne,hab.ne]
+  rw [he,Nat.sub_zero] at u
+  have := cap_single_def u; omega
+
+/-- Complete list of opponent-to-move positions under a persistent lead cap of two. -/
+def capTwoShape : ℕ → Finset ℕ → Prop
+  | 0,s => s = ∅ ∨ s = {1,2,3}
+  | 1,s => s = ∅ ∨ s = {1} ∨ ∃ a : ℕ, 0 < a ∧ s = {a,a+1}
+  | 2,s => s = ∅ ∨ s = {1} ∨ s = {2}
+  | _,_ => False
+
+theorem capped_two_necessary (s : Finset ℕ) (d : ℕ) (hp : ∀ z ∈ s, 0 < z)
+    (hd : d ≤ 2) (h : Capped 2 s d false) : capTwoShape d s := by
+  induction s using Finset.strongInductionOn generalizing d with
+  | _ s ih =>
+    rcases s.eq_empty_or_nonempty with rfl | hs
+    · obtain rfl | rfl | rfl : d = 0 ∨ d = 1 ∨ d = 2 := by omega
+      all_goals exact Or.inl rfl
+    let m := s.min' hs
+    have hm : m ∈ s := s.min'_mem hs
+    have hmpos := hp m hm
+    have hmin : ∀ z ∈ s, m ≤ z := fun z hz => s.min'_le z hz
+    have hrestore : insert m (s.erase m) = s := Finset.insert_erase hm
+    have hsub : s.erase m ⊂ s := Finset.erase_ssubset hm
+    have hpos' : ∀ z ∈ s.erase m, 0 < z := fun z hz => hp z (Finset.mem_erase.mp hz).2
+    have htail (y : ℕ) (hy : y ∈ s.erase m) :
+        insert m (insert y ((s.erase m).erase y)) = s := by rw [Finset.insert_erase hy,hrestore]
+    have hltail (y z : ℕ) (hz : z ∈ (s.erase m).erase y) : m < z ∧ z ≠ y := by
+      obtain ⟨hzy,hz'⟩ := Finset.mem_erase.mp hz
+      obtain ⟨hzm,hzs⟩ := Finset.mem_erase.mp hz'
+      exact ⟨lt_of_le_of_ne (hmin z hzs) hzm.symm,hzy⟩
+    have hsmall (y g : ℕ) (hg : g ≤ 2) (hnext : Capped 2 ((s.erase m).erase y) g false) :
+        capTwoShape g ((s.erase m).erase y) :=
+      ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) hsub) g
+        (fun z hz => hpos' z (Finset.mem_erase.mp hz).2) hg hnext
+    obtain rfl | rfl | rfl : d=0 ∨ d=1 ∨ d=2 := by omega
+    · rcases cap_minimum h hm hmin (Nat.zero_le _) with ⟨_,hbad⟩ | ⟨y,hy,hmy,hg,hnext⟩
+      · omega
+      rw [Nat.sub_zero] at hg hnext
+      have rest := htail y hy
+      obtain he | he : y-m=1 ∨ y-m=2 := by omega
+      · have sh := hsmall y _ hg hnext
+        rw [he] at sh
+        rcases sh with he0 | he1 | ⟨a,ha,he2⟩
+        · rw [he0] at rest
+          have ss : s = {m,y} := by simpa using rest.symm
+          exact (cap_bad_tied_pair hmy (ss ▸ h)).elim
+        · have hz : 1 ∈ (s.erase m).erase y := he1 ▸ Finset.mem_singleton_self 1
+          have := hltail _ _ hz; omega
+        · have hz : a ∈ (s.erase m).erase y := by rw [he2]; simp
+          have := hltail _ _ hz
+          have hy' : y=m+1 := by omega
+          rw [he2,hy'] at rest
+          exact (cap_bad_quad hmpos (by omega) (rest ▸ h)).elim
+      · have sh := hsmall y _ hg hnext
+        rw [he] at sh
+        rcases sh with he0 | he1 | he2
+        · rw [he0] at rest
+          have ss : s = {m,y} := by simpa using rest.symm
+          exact (cap_bad_tied_pair hmy (ss ▸ h)).elim
+        · have hz : 1 ∈ (s.erase m).erase y := he1 ▸ Finset.mem_singleton_self 1
+          have := hltail _ _ hz; omega
+        · have hz : 2 ∈ (s.erase m).erase y := he2 ▸ Finset.mem_singleton_self 2
+          have := hltail _ _ hz
+          have hm1 : m=1 := by omega
+          have hy3 : y=3 := by omega
+          rw [he2,hm1,hy3] at rest
+          right
+          rw [← rest]
+          decide
+    · rcases cap_minimum h hm hmin (by omega) with ⟨hsm,hm1⟩ | ⟨y,hy,hmy,hg,hnext⟩
+      · exact Or.inr (Or.inl (by rwa [hm1] at hsm))
+      · have hy' : y=m+1 := by omega
+        have hg' : y-(m-1)=2 := by omega
+        have sh := hsmall y _ hg hnext
+        rw [hg'] at sh
+        rcases sh with he0 | he1 | he2
+        · have rest := htail y hy
+          rw [he0,hy'] at rest
+          exact Or.inr (Or.inr ⟨m,hmpos,by simpa using rest.symm⟩)
+        · have hz : 1 ∈ (s.erase m).erase y := he1 ▸ Finset.mem_singleton_self 1
+          have := hltail _ _ hz; omega
+        · have hz : 2 ∈ (s.erase m).erase y := he2 ▸ Finset.mem_singleton_self 2
+          have := hltail _ _ hz; omega
+    · by_cases hone : m=1
+      · have u := cap_keep h hm (show m<2 by omega)
+        rw [show 2-m=1 by omega] at u
+        have sh := ih _ hsub 1 hpos' (by decide) u
+        rcases sh with he0 | he1 | ⟨a,ha,he2⟩
+        · rw [he0,hone] at hrestore
+          exact Or.inr (Or.inl (by simpa using hrestore.symm))
+        · have hz : m ∈ s.erase m := by rw [he1,hone]; simp
+          exact (Finset.notMem_erase _ _ hz).elim
+        · have hz : a ∈ s.erase m := by rw [he2]; simp
+          have hne := (Finset.mem_erase.mp hz).1
+          rw [he2,hone] at hrestore
+          exact (cap_bad_triple (by omega) (hrestore ▸ h)).elim
+      · rcases cap_minimum h hm hmin (by omega) with ⟨hsm,hm2⟩ | ⟨y,hy,hmy,hg,_⟩
+        · exact Or.inr (Or.inr (by rwa [hm2] at hsm))
+        · omega
+
+private theorem cap_empty_opp (K d : ℕ) : Capped K ∅ d false := by
+  apply Capped.against <;> simp
+
+private theorem cap_one_def {K d x : ℕ} (hle : d ≤ x) (hk : x-d ≤ K) : Capped K {x} d true := by
+  exact Capped.pass (Finset.mem_singleton_self _) hle hk (by simpa using cap_empty_opp K (x-d))
+
+private theorem cap_one_opp {K d x : ℕ} (hx : x ≤ d) : Capped K {x} d false := by
+  apply Capped.against
+  · intro y hy _
+    obtain rfl := Finset.mem_singleton.mp hy
+    simpa using cap_empty_opp K (d-y)
+  · intro y hy hle
+    obtain rfl := Finset.mem_singleton.mp hy
+    have hd : y-d=0 := by omega
+    simpa [hd] using (Capped.terminal (K:=K))
+
+private theorem cap_adjacent (a : ℕ) (ha : 0 < a) : Capped 2 {a,a+1} 1 false := by
+  apply Capped.against
+  · intro x hx hlt
+    simp only [Finset.mem_insert,Finset.mem_singleton] at hx
+    omega
+  · intro x hx _
+    simp only [Finset.mem_insert,Finset.mem_singleton] at hx
+    rcases hx with hx | hx <;> subst x
+    · have he : ({a,a+1} : Finset ℕ).erase a = {a+1} := by simp
+      rw [he]; exact cap_one_def (by omega) (by omega)
+    · have he : ({a,a+1} : Finset ℕ).erase (a+1) = {a} := by simp [Finset.erase_insert_of_ne]
+      rw [he]; exact cap_one_def (by omega) (by omega)
+
+private theorem cap123 : Capped 2 {1,2,3} 0 false := by
+  apply Capped.against
+  · intros; omega
+  · intro x hx _
+    have h : x=1 ∨ x=2 ∨ x=3 := by simpa using hx
+    rcases h with rfl | rfl | rfl
+    · change Capped 2 {2,3} 1 true
+      apply Capped.pass (x:=3) (by decide) (by decide) (by decide)
+      exact cap_one_opp (by decide : 2 ≤ 2)
+    · change Capped 2 {1,3} 2 true
+      apply Capped.pass (x:=3) (by decide) (by decide) (by decide)
+      exact cap_one_opp (by decide : 1 ≤ 1)
+    · change Capped 2 {1,2} 3 true
+      apply Capped.keep (x:=1) (by decide) (by decide)
+      exact cap_one_def (by decide : 2 ≤ 2) (by decide)
+
+/-- All literal cap-two handoffs on distinct positive integers, independently of their largest weight. -/
+theorem capped_two_iff (s : Finset ℕ) (d : ℕ) (hp : ∀ x ∈ s, 0 < x) (hd : d ≤ 2) :
+    Capped 2 s d false ↔ capTwoShape d s := by
+  refine ⟨capped_two_necessary s d hp hd,?_⟩
+  obtain rfl | rfl | rfl : d=0 ∨ d=1 ∨ d=2 := by omega
+  · rintro (rfl | rfl)
+    · exact cap_empty_opp _ _
+    · exact cap123
+  · rintro (rfl | rfl | ⟨a,ha,rfl⟩)
+    · exact cap_empty_opp _ _
+    · exact cap_one_opp (by decide)
+    · exact cap_adjacent a ha
+  · rintro (rfl | rfl | rfl)
+    · exact cap_empty_opp _ _
+    · exact cap_one_opp (by decide)
+    · exact cap_one_opp (by decide)
+
+theorem no_pure_exact_class {s : Finset ℕ} (hs : s.Nonempty) (hp : ∀ x ∈ s, 0 < x) :
+    ∃ m ∈ s, ∀ t ⊆ s.erase m, t.sum id ≠ m := by
+  let m := s.min' hs
+  have hm : m ∈ s := s.min'_mem hs
+  refine ⟨m,hm,?_⟩
+  intro t ht he
+  rcases t.eq_empty_or_nonempty with rfl | ⟨y,hy⟩
+  · have := hp m hm; simp at he; omega
+  · obtain ⟨hne,hys⟩ := Finset.mem_erase.mp (ht hy)
+    have hle : m ≤ y := s.min'_le y hys
+    have hsum : (t.erase y).sum id + y = t.sum id := Finset.sum_erase_add t id hy
+    omega
+
+/-- A Brown-complete bank reaching the largest live weight can coexist with a strict win. -/
+theorem complete_bank_counterexample :
+    (∀ t : Fin 23, ∃ c ∈ ({1,2,3,7,9} : Finset ℕ).powerset, c.sum id = t.val) ∧
+    value ([1,2,3,7,9,11,14,15,22] : List ℕ).toFinset = .win := by
+  constructor
+  · decide
+  · rw [value_eq_gap, ← eval_correct _ (by decide)]
+    have hw : canReach 9 [1,2,3,7,9,11,14,15,22] 0 true = true := by decide
+    rw [canReach_correct] at hw
+    change eval 9 [1,2,3,7,9,11,14,15,22] 0 = .win
+    cases hv : eval 9 [1,2,3,7,9,11,14,15,22] 0 <;> simp_all [meets]
+
+/-- Descent on an interval with a positive deficit no larger than its smallest token.
+A large first pick allows an exact singleton response. Only the short band needs a separate test. -/
+theorem interval_deficit_descent (a N d : ℕ) (ha : a ≤ N) (hd : 0 < d) (hda : d ≤ a)
+    (hb : gapValue (Finset.Icc (a+1) N) (a-d) = .draw)
+    (hsmall : ∀ x ∈ Finset.Icc a N, a < x → x < a+d →
+      gapValue ((Finset.Icc a N).erase x) (x-d) ≠ .loss)
+    (hlarge : ∀ x ∈ Finset.Icc a N, a+d ≤ x →
+      value (((Finset.Icc a N).erase x).erase (x-d)) ≠ .win) :
+    gapValue (Finset.Icc a N) d = .draw := by
+  let s := Finset.Icc a N
+  have hm : a ∈ s := Finset.mem_Icc.mpr ⟨le_rfl,ha⟩
+  have he : s.erase a = Finset.Icc (a+1) N := by
+    ext z; simp only [s,Finset.mem_erase,Finset.mem_Icc]; omega
+  have hopen : pick s d a = .draw := by simp [pick,Nat.not_lt_of_ge hda,he,hb,Outcome.neg]
+  change gapValue s d = .draw
+  cases hv : gapValue s d with
+  | draw => rfl
+  | loss =>
+    have u := (gap_loss_iff s ⟨a,hm⟩ d).mp hv a hm
+    rw [hopen] at u; cases u
+  | win =>
+    obtain ⟨x,hx,hw⟩ := (gap_win_iff s ⟨a,hm⟩ d).mp hv
+    have hax := (Finset.mem_Icc.mp hx).1
+    have hxn := (Finset.mem_Icc.mp hx).2
+    by_cases hxa : x=a
+    · subst x; rw [hopen] at hw; cases hw
+    have hs : gapValue (s.erase x) (x-d) ≠ .loss := by
+      by_cases hband : x < a+d
+      · exact hsmall x hx (by omega) hband
+      · apply hold_by_exact_pick (h := hlarge x hx (by omega))
+        simp only [Finset.mem_erase,Finset.mem_Icc]; omega
+    simp only [pick,show ¬x<d by omega,ite_false] at hw
+    cases hc : gapValue (s.erase x) (x-d) <;> simp_all [Outcome.neg]
+
+theorem boundary_one_descent (N : ℕ) (hN : 3 ≤ N)
+    (hb : gapValue (Finset.Icc 4 N) 2 = .draw)
+    (ht : ∀ x ∈ Finset.Icc 3 N, 4 ≤ x →
+      value (((Finset.Icc 3 N).erase x).erase (x-1)) ≠ .win) :
+    gapValue (Finset.Icc 3 N) 1 = .draw :=
+  interval_deficit_descent 3 N 1 hN (by decide) (by decide) hb (fun _ _ _ _ => by omega) ht
+
+
+/-- A partition into disjoint ordered pairs, with the sum of their differences. -/
+inductive PairedBudget : Finset ℕ → ℕ → Prop
+  | nil : PairedBudget ∅ 0
+  | cons {s : Finset ℕ} {E a b : ℕ} : a < b → a ∉ s → b ∉ s →
+      PairedBudget s E → PairedBudget (insert a (insert b s)) (E+(b-a))
+
+private theorem paired_partner {s : Finset ℕ} {E : ℕ} (h : PairedBudget s E) (x : ℕ) (hx : x ∈ s) :
+    ∃ y ∈ s.erase x, ∃ e ≤ E, (y=x+e ∨ x=y+e) ∧ PairedBudget ((s.erase x).erase y) (E-e) := by
+  induction h with
+  | nil => simp at hx
+  | @cons s E a b hab ha hb hs ih =>
+    rcases Finset.mem_insert.mp hx with hxa | hx'
+    · subst x
+      have he : (insert a (insert b s)).erase a = insert b s := by simp [ha,hab.ne]
+      refine ⟨b,by rw [he]; simp,b-a,by omega,Or.inl (by omega),?_⟩
+      simpa [he,hb] using hs
+    rcases Finset.mem_insert.mp hx' with hxb | hx
+    · subst x
+      have he : (insert a (insert b s)).erase b = insert a s := by
+        simp [Finset.erase_insert_of_ne,hab.ne,hb]
+      refine ⟨a,by rw [he]; simp,b-a,by omega,Or.inr (by omega),?_⟩
+      simpa [he,ha] using hs
+    obtain ⟨y,hy,e,hE,hor,hnext⟩ := ih hx
+    obtain ⟨hyx,hys⟩ := Finset.mem_erase.mp hy
+    have hxa : a ≠ x := fun z => ha (z ▸ hx)
+    have hxb : b ≠ x := fun z => hb (z ▸ hx)
+    have hya : a ≠ y := fun z => ha (z ▸ hys)
+    have hyb : b ≠ y := fun z => hb (z ▸ hys)
+    have he : (insert a (insert b s)).erase x = insert a (insert b (s.erase x)) := by
+      simp [Finset.erase_insert_of_ne,hxa,hxb]
+    refine ⟨y,by rw [he]; exact Finset.mem_insert_of_mem (Finset.mem_insert_of_mem hy),e,by omega,hor,?_⟩
+    rw [he,Finset.erase_insert_of_ne hya,Finset.erase_insert_of_ne hyb,
+      show E+(b-a)-e = (E-e)+(b-a) by omega]
+    exact PairedBudget.cons hab
+      (fun hm => ha (Finset.mem_erase.mp (Finset.mem_erase.mp hm).2).2)
+      (fun hm => hb (Finset.mem_erase.mp (Finset.mem_erase.mp hm).2).2) hnext
+
+/-- If the defender's lead covers the total spread, and the spread plus the
+lead fits below every live token, responding to each pick with its mate holds. -/
+theorem paired_reservoir (s : Finset ℕ) (E d K : ℕ) (hp : PairedBudget s E)
+    (hlo : E ≤ d) (hhi : d+E ≤ K) (hmin : ∀ x ∈ s, K ≤ x) : Capped K s d false := by
+  induction s using Finset.strongInductionOn generalizing E d with
+  | _ s ih =>
+    apply Capped.against
+    · intro x hx hlt
+      have := hmin x hx; omega
+    · intro x hx hdx
+      obtain ⟨y,hy,e,he,hor,hrest⟩ := paired_partner hp x hx
+      have hxy : x-d ≤ y := by rcases hor with h | h <;> omega
+      have hcap : y-(x-d) ≤ K := by rcases hor with h | h <;> omega
+      have hlow : E-e ≤ y-(x-d) := by rcases hor with h | h <;> omega
+      have hhigh : y-(x-d)+(E-e) ≤ K := by rcases hor with h | h <;> omega
+      exact Capped.pass hy hxy hcap (ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) (Finset.erase_ssubset hx))
+        _ _ hrest hlow hhigh (fun z hz => hmin z (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2))
+
+theorem paired_reservoir_nonwin (s : Finset ℕ) (E d : ℕ) (hp : PairedBudget s E)
+    (hlo : E ≤ d) (hmin : ∀ x ∈ s, d+E ≤ x) : gapValue s d ≠ .win :=
+  capped_sound (paired_reservoir s E d (d+E) hp hlo le_rfl hmin)
+
+/-- Consecutive pairs on an interval have total spread equal to their number. -/
+theorem paired_interval (a n : ℕ) : PairedBudget (Finset.Ico a (a+2*n)) n := by
+  induction n generalizing a with
+  | zero => simp [PairedBudget.nil]
+  | succ n ih =>
+    have h := ih (a+2)
+    have ha : a ∉ Finset.Ico (a+2) (a+2+2*n) := by simp
+    have hb : a+1 ∉ Finset.Ico (a+2) (a+2+2*n) := by simp
+    have hp := PairedBudget.cons (a:=a) (b:=a+1) (by omega) ha hb h
+    have he : insert a (insert (a+1) (Finset.Ico (a+2) (a+2+2*n))) = Finset.Ico a (a+2*(n+1)) := by
+      ext x; simp only [Finset.mem_insert,Finset.mem_Ico]; omega
+    rw [he,show n+(a+1-a)=n+1 by omega] at hp
+    exact hp
+
+theorem high_interval_nonwin (a n d : ℕ) (hlo : n ≤ d) (hhi : d+n ≤ a) :
+    gapValue (Finset.Ico a (a+2*n)) d ≠ .win :=
+  paired_reservoir_nonwin _ n d (paired_interval a n) hlo
+    (fun _ hx => le_trans hhi (Finset.mem_Ico.mp hx).1)
+
+
+/-- Above the cap, each minimum opening forces the defender to spend one
+larger token and increase the lead. -/
+theorem capped_high_card (s : Finset ℕ) (d K : ℕ) (h : Capped K s d false)
+    (hd : d ≤ K) (hmin : ∀ x ∈ s, K < x) : s.card ≤ 2*(K-d) := by
+  induction s using Finset.strongInductionOn generalizing d with
+  | _ s ih =>
+    rcases s.eq_empty_or_nonempty with rfl | hn
+    · simp
+    let m := s.min' hn
+    have hm : m ∈ s := s.min'_mem hn
+    have hlo := hmin _ hm
+    rcases cap_minimum h hm (fun z hz => s.min'_le z hz) (by omega) with h0 | h1
+    · omega
+    obtain ⟨y,hy,hmy,hgap,hnxt⟩ := h1
+    have hh := ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) (Finset.erase_ssubset hm)) _ hnxt hgap
+      (fun z hz => hmin z (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2)
+    have := Finset.card_erase_add_one hy
+    have := Finset.card_erase_add_one hm
+    omega
+
+/-- Greedy minimum replies exclude an absolute handoff bound on sufficiently
+large boards. The low tokens each account for at most two further removals. -/
+theorem capped_card_bound (s : Finset ℕ) (d K : ℕ) (h : Capped K s d false)
+    (hd : d ≤ K) : s.card ≤ 2*K + 2*(s.filter (· ≤ K)).card := by
+  induction s using Finset.strongInductionOn generalizing d with
+  | _ s ih =>
+    rcases s.eq_empty_or_nonempty with rfl | hn
+    · simp
+    let m := s.min' hn
+    have hm : m ∈ s := s.min'_mem hn
+    by_cases hlow : m ≤ K
+    · have hc := Finset.card_erase_add_one hm
+      have hc' := Finset.card_erase_add_one (show m ∈ s.filter (· ≤ K) from Finset.mem_filter.mpr ⟨hm,hlow⟩)
+      rw [← Finset.filter_erase] at hc'
+      by_cases hlt : m<d
+      · have hh := ih _ (Finset.erase_ssubset hm) _ (cap_keep h hm hlt) (by omega)
+        omega
+      rcases cap_minimum h hm (fun z hz => s.min'_le z hz) (by omega) with ⟨hs,_⟩ | ⟨y,hy,_,hg,hnext⟩
+      · have hcard := congrArg Finset.card hs
+        simp only [Finset.card_singleton] at hcard
+        omega
+      · have hh := ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) (Finset.erase_ssubset hm)) _ hnext hg
+        have hsub := Finset.card_le_card (Finset.filter_subset_filter (· ≤ K) (Finset.erase_subset y (s.erase m)))
+        have := Finset.card_erase_add_one hy
+        omega
+    · have hh := capped_high_card s d K h hd (fun x hx => lt_of_lt_of_le (by omega : K<m) (s.min'_le x hx))
+      omega
+
+theorem capped_positive_card (s : Finset ℕ) (d K : ℕ) (hp : ∀ x ∈ s, 0 < x)
+    (h : Capped K s d false) (hd : d ≤ K) : s.card ≤ 4*K := by
+  have sub : s.filter (· ≤ K) ⊆ Finset.Icc 1 K := by
+    intro x hx
+    obtain ⟨hm,hk⟩ := Finset.mem_filter.mp hx
+    exact Finset.mem_Icc.mpr ⟨hp _ hm,hk⟩
+  have hs := Finset.card_le_card sub
+  rw [Nat.card_Icc] at hs
+  have hc := capped_card_bound s d K h hd
+  omega
+
+
+/-- Fewer holes than the number of disjoint complementary pairs guarantee
+a two-token exact catch. The condition says nothing about play after equality. -/
+theorem exact_pair_of_few_holes (N d : ℕ) (s : Finset ℕ) (hd : d ≤ N)
+    (hh : ((Finset.Icc 1 N) \ s).card < (d-1)/2) :
+    ∃ u ∈ s, ∃ v ∈ s, u < v ∧ u+v=d := by
+  let q := (d-1)/2
+  let t := Finset.Icc 1 q
+  let holes := Finset.Icc 1 N \ s
+  have hq : q=(d-1)/2 := rfl
+  by_contra! hn
+  let f := fun u : ℕ => if u ∈ s then d-u else u
+  have hm (u : ℕ) (hu : u∈t) : 1 ≤ u ∧ u ≤ q := Finset.mem_Icc.mp hu
+  have hf (u : ℕ) (hu : u∈t) : f u ∈ holes := by
+    have b := hm u hu
+    apply Finset.mem_sdiff.mpr
+    by_cases he : u∈s
+    · simp only [f,he,ite_true]
+      refine ⟨Finset.mem_Icc.mpr ⟨by omega,by omega⟩,?_⟩
+      intro hv
+      have := hn u he (d-u) hv (by omega)
+      omega
+    · have huN : u≤N := by omega
+      exact (by simpa [f,he] using And.intro (Finset.mem_Icc.mpr ⟨b.1,huN⟩) he)
+  have hcard := Finset.card_le_card_of_injOn f (fun u hu => hf u hu) (by
+    intro u hu v hv heq
+    have h1 := hm u hu
+    have h2 := hm v hv
+    by_cases hs : u∈s <;> by_cases ht : v∈s <;> simp [f,hs,ht] at heq <;> omega)
+  change t.card ≤ holes.card at hcard
+  have ht : t.card=q := by simp [t,Nat.card_Icc]
+  change holes.card < (d-1)/2 at hh
+  omega
+
+
+/-- A strict initial surplus over the total spread turns the paired response
+into a win for the player who leads. -/
+theorem paired_reservoir_loss (s : Finset ℕ) (E d : ℕ) (hp : PairedBudget s E)
+    (hlo : E < d) (hmin : ∀ x ∈ s, d+E ≤ x+1) : gapValue s d = .loss := by
+  induction s using Finset.strongInductionOn generalizing E d with
+  | _ s ih =>
+    rcases s.eq_empty_or_nonempty with rfl | hs
+    · simp [gap_empty,show d≠0 by omega]
+    have hE : 0<E := by cases hp with
+                         | nil => simp at hs
+                         | cons hab _ _ _ => omega
+    apply (gap_loss_iff _ hs _).mpr
+    intro x hx
+    obtain ⟨y,hy,e,he,hor,hrest⟩ := paired_partner hp x hx
+    have hbig := hmin _ hx
+    have hxy : x-d ≤ y := by rcases hor with h | h <;> omega
+    have hlow : E-e < y-(x-d) := by rcases hor with h | h <;> omega
+    have hhigh : y-(x-d)+(E-e) ≤ d+E := by rcases hor with h | h <;> omega
+    have hh := ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) (Finset.erase_ssubset hx)) _ _ hrest hlow
+      (fun z hz => le_trans hhigh (hmin z (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2))
+    have hw : gapValue (s.erase x) (x-d) = .win := by
+      apply (gap_win_iff _ ⟨y,hy⟩ _).mpr
+      exact ⟨y,hy,by simp [pick,Nat.not_lt_of_ge hxy,hh,Outcome.neg]⟩
+    simp [pick,show ¬x<d by omega,hw,Outcome.neg]
+
+/-- With three tokens' worth of density slack, a large opening has an exact
+two-pick defense preserving the same strict density threshold. -/
+theorem dense_pair_repair (N x : ℕ) (s : Finset ℕ) (hp : ∀ z ∈ s, 0 < z)
+    (hx : x ∈ s) (hxN : x ≤ N) (hh : ((Finset.Icc 1 N) \ s).card < (x-1)/2)
+    (hdeep : 2*N+10 < 3*s.card) :
+    ∃ u ∈ s.erase x, ∃ v ∈ (s.erase x).erase u, u < v ∧ u+v=x ∧
+      2*N+1 < 3*(((s.erase x).erase u).erase v).card := by
+  obtain ⟨u,hu,v,hv,huv,hs⟩ := exact_pair_of_few_holes N x s hxN hh
+  have hupos := hp _ hu
+  have hu' : u ∈ s.erase x := Finset.mem_erase.mpr ⟨by omega,hu⟩
+  have hv' : v ∈ (s.erase x).erase u := Finset.mem_erase.mpr ⟨by omega,Finset.mem_erase.mpr ⟨by omega,hv⟩⟩
+  have := Finset.card_erase_add_one hx
+  have := Finset.card_erase_add_one hu'
+  have := Finset.card_erase_add_one hv'
+  exact ⟨u,hu',v,hv',huv,hs,by omega⟩
+
+
+/-- A low bank can be spent entirely by the opponent. The defender reserves
+their lead for that bank and the spread of disjoint high pairs. -/
+theorem bank_and_pairs (s bank high : Finset ℕ) (E d : ℕ) (hs : s = bank ∪ high)
+    (hdis : Disjoint bank high) (hp : PairedBudget high E)
+    (hb : bank.sum id + E ≤ d) (hhigh : ∀ x ∈ high, d+E ≤ x) :
+    gapValue s d ≠ .win ∧ (bank.sum id + E < d → gapValue s d = .loss) := by
+  induction s using Finset.strongInductionOn generalizing bank high E d with
+  | _ s ih =>
+    rcases high.eq_empty_or_nonempty with rfl | hne
+    · simp only [Finset.union_empty] at hs
+      subst s
+      by_cases hlt : bank.sum id < d
+      · simp [gap_insufficient bank hlt]
+      · have hd : d=bank.sum id := by omega
+        rw [hd,gap_exact_total]
+        exact ⟨by decide,by omega⟩
+    have hE : 0<E := by cases hp with
+                         | nil => simp at hne
+                         | cons hab _ _ _ => omega
+    have hn : s.Nonempty := hs ▸ hne.mono Finset.subset_union_right
+    have response (x : ℕ) (hx : x∈s) :
+        pick s d x ≠ .win ∧ (bank.sum id + E < d → pick s d x = .loss) := by
+      rcases Finset.mem_union.mp (hs ▸ hx) with hxb | hxh
+      · have hsum := Finset.sum_erase_add bank id hxb
+        change (bank.erase x).sum id + x = bank.sum id at hsum
+        have hlt : x<d := by omega
+        have he : s.erase x = bank.erase x ∪ high := by
+          rw [hs,Finset.erase_union_distrib,Finset.erase_eq_of_notMem (Finset.disjoint_left.mp hdis hxb)]
+        have hr := ih _ (Finset.erase_ssubset hx) _ _ _ (d-x) he
+          (hdis.mono_left (Finset.erase_subset _ _)) hp (by omega)
+          (fun y hy => le_trans (by omega : d-x+E ≤ d+E) (hhigh y hy))
+        simp only [pick,hlt,ite_true]
+        exact ⟨hr.1,fun h => hr.2 (by omega)⟩
+      · obtain ⟨y,hy,e,he,hor,hp'⟩ := paired_partner hp x hxh
+        have xbig := hhigh _ hxh
+        have hyh := (Finset.mem_erase.mp hy).2
+        have hxy : x-d ≤ y := by rcases hor with h | h <;> omega
+        have hl : bank.sum id+(E-e) ≤ y-(x-d) := by rcases hor with h | h <;> omega
+        have hh : y-(x-d)+(E-e) ≤ d+E := by rcases hor with h | h <;> omega
+        have hsx : s.erase x = bank ∪ high.erase x := by
+          rw [hs,Finset.erase_union_distrib,Finset.erase_eq_of_notMem (Finset.disjoint_left.mp hdis.symm hxh)]
+        have hsy : (s.erase x).erase y = bank ∪ (high.erase x).erase y := by
+          rw [hsx,Finset.erase_union_distrib,Finset.erase_eq_of_notMem (Finset.disjoint_left.mp hdis.symm hyh)]
+        have hys : y∈s.erase x := hsx ▸ Finset.mem_union_right _ hy
+        have hr := ih _ (lt_of_le_of_lt (Finset.erase_subset _ _) (Finset.erase_ssubset hx))
+          _ _ _ (y-(x-d)) hsy (hdis.mono_right (fun _ hz => (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2))
+          hp' hl (fun z hz => le_trans hh (hhigh z (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2))
+        have held : gapValue (s.erase x) (x-d) ≠ .loss := by
+          intro loss
+          have bad := (gap_loss_iff _ ⟨y,hys⟩ _).mp loss y hys
+          simp only [pick,Nat.not_lt_of_ge hxy,ite_false] at bad
+          cases hv : gapValue ((s.erase x).erase y) (y-(x-d)) <;> simp_all [Outcome.neg]
+        simp only [pick,show ¬x<d by omega,ite_false]
+        refine ⟨?_,?_⟩
+        · cases hv : gapValue (s.erase x) (x-d) <;> simp_all [Outcome.neg]
+        · intro strict
+          have strong := hr.2 (by rcases hor with h | h <;> omega)
+          have won := (gap_win_iff _ ⟨y,hys⟩ (x-d)).mpr ⟨y,hys,by simp [pick,Nat.not_lt_of_ge hxy,strong,Outcome.neg]⟩
+          simp [won,Outcome.neg]
+    constructor
+    · intro win
+      obtain ⟨x,hx,hw⟩ := (gap_win_iff _ hn _).mp win
+      exact (response x hx).1 hw
+    · intro hl
+      exact (gap_loss_iff _ hn _).mpr (fun x hx => (response x hx).2 hl)
+
+/-- Take all preparatory tokens, then the pivot. The positive residual deficit
+before the pivot is what makes every preparatory pick legal in the same turn. -/
+theorem hold_by_overshoot_subset {s t : Finset ℕ} {pivot r : ℕ} (ht : t ⊆ s)
+    (hz : pivot ∈ s \ t) (hr : 0 < r) (hc : r ≤ pivot)
+    (hrest : gapValue ((s \ t).erase pivot) (pivot-r) ≠ .win) :
+    gapValue s (t.sum id + r) ≠ .loss := by
+  induction t using Finset.induction_on generalizing s with
+  | empty =>
+    simp only [Finset.sdiff_empty] at hz hrest
+    simp only [Finset.sum_empty,Nat.zero_add]
+    intro hl
+    have h := (gap_loss_iff _ ⟨pivot,hz⟩ _).mp hl pivot hz
+    simp only [pick,Nat.not_lt_of_ge hc,ite_false] at h
+    cases hv : gapValue (s.erase pivot) (pivot-r) <;> simp_all [Outcome.neg]
+  | @insert x t hx ih =>
+    have hxs : x ∈ s := ht (Finset.mem_insert_self _ _)
+    have hts : t ⊆ s.erase x := fun y hy => Finset.mem_erase.mpr
+      ⟨fun e => hx (e ▸ hy),ht (Finset.mem_insert_of_mem hy)⟩
+    have he : (s.erase x) \ t = s \ insert x t := by
+      ext y; simp [Finset.mem_erase]; tauto
+    have hnext := ih hts (he ▸ hz) (he ▸ hrest)
+    rw [Finset.sum_insert hx,id_eq]
+    intro hl
+    have h := (gap_loss_iff _ ⟨x,hxs⟩ _).mp hl x hxs
+    have hlt : x < x+t.sum id+r := by omega
+    exact hnext (by simpa only [pick,hlt,ite_true,show x+t.sum id+r-x=t.sum id+r by omega] using h)
+
+/-- A single adjacent-hole family at offsets two and three, together with one
+unpunctured positive-deficit boundary, suffices for a full prefix draw. -/
+theorem draw_of_two_offsets (N : ℕ) (hN : 3 ≤ N) (hb : gapValue (Finset.Icc 4 N) 2 = .draw)
+    (hh : ∀ a, a=2 ∨ a=3 → ∀ x, a<x → x≤N →
+      value (((Finset.Icc a N).erase x).erase (x-1)) ≠ .win) :
+    value (Finset.Icc 1 N) = .draw := by
+  have h1 : (Finset.Icc 1 N).erase 1 = Finset.Icc 2 N := by
+    ext z; simp only [Finset.mem_erase,Finset.mem_Icc]; omega
+  have h2 : (Finset.Icc 2 N).erase 2 = Finset.Icc 3 N := by
+    ext z; simp only [Finset.mem_erase,Finset.mem_Icc]; omega
+  apply draw_of_first_ray N (by omega) _ rfl
+  · rw [h1,h2]
+    exact boundary_one_descent N hN hb (fun x hx h => hh 3 (Or.inr rfl) x h (Finset.mem_Icc.mp hx).2)
+  · intro b hb' h
+    rw [h1]
+    exact hh 2 (Or.inl rfl) b h (Finset.mem_Icc.mp hb').2
+
+private theorem paired_union {s t : Finset ℕ} {E F : ℕ} (h : PairedBudget s E) (k : PairedBudget t F)
+    (dis : Disjoint s t) : PairedBudget (s∪t) (E+F) := by
+  induction h with
+  | nil => simpa using k
+  | @cons s E a b hab ha hb _ ih =>
+    obtain ⟨hat,db⟩ := Finset.disjoint_insert_left.mp dis
+    obtain ⟨hbt,ds⟩ := Finset.disjoint_insert_left.mp db
+    have q := PairedBudget.cons hab (show a∉s∪t by simp [ha,hat]) (show b∉s∪t by simp [hb,hbt]) (ih ds)
+    simpa [Finset.insert_union,Nat.add_assoc,Nat.add_comm,Nat.add_left_comm] using q
+
+private theorem punish_with_pair {s : Finset ℕ} {d x y E : ℕ} (hy : y∈s.erase x)
+    (hd : d≤x) (hp : x-d≤y) (hr : PairedBudget ((s.erase x).erase y) E)
+    (hl : E<y-(x-d)) (hh : ∀ z∈(s.erase x).erase y, y-(x-d)+E≤z+1) :
+    pick s d x = .loss := by
+  have loss := paired_reservoir_loss _ E _ hr hl hh
+  have win : gapValue (s.erase x) (x-d) = .win :=
+    (gap_win_iff _ ⟨y,hy⟩ _).mpr ⟨y,hy,by simp [pick,Nat.not_lt_of_ge hp,loss,Outcome.neg]⟩
+  simp [pick,Nat.not_lt_of_ge hd,win,Outcome.neg]
+
+private theorem punish_lower (a i j : ℕ) (ha : 2*(i+1+j)≤a+1) :
+    pick (Finset.Ico a (a+2*(i+1+j))) (i+1+j) (a+2*i) = .loss := by
+  let x := a+2*i
+  let s := Finset.Ico a (a+2*(i+1+j))
+  let l := Finset.Ico a (a+2*i)
+  let r := Finset.Ico (x+2) (x+2+2*j)
+  have dis : Disjoint l r := by
+    apply Finset.disjoint_left.mpr
+    intro z hz h
+    simp only [l,r,x,Finset.mem_Ico] at hz h; omega
+  have pr : PairedBudget (l∪r) (i+j) := paired_union (paired_interval a i) (paired_interval (x+2) j) dis
+  have he : (s.erase x).erase (x+1) = l∪r := by
+    ext z; simp only [s,x,l,r,Finset.mem_union,Finset.mem_erase,Finset.mem_Ico]; omega
+  have hy : x+1∈s.erase x := by simp only [s,x,Finset.mem_erase,Finset.mem_Ico]; omega
+  apply punish_with_pair (d:=i+1+j) hy (by dsimp [x]; omega) (by omega) (he ▸ pr) (by dsimp [x]; omega)
+  intro z hz
+  have hz' := (Finset.mem_Ico.mp (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2).1
+  dsimp [x] at *; omega
+
+private theorem punish_upper (a i j : ℕ) (ha : 2*(i+2+j)+1≤a) :
+    pick (Finset.Ico a (a+2*(i+2+j))) (i+2+j) (a+2*i+1) = .loss := by
+  let t := a+2*i
+  let s := Finset.Ico a (a+2*(i+2+j))
+  let l := Finset.Ico a (a+2*i)
+  let r := Finset.Ico (t+4) (t+4+2*j)
+  have dis : Disjoint l r := by
+    apply Finset.disjoint_left.mpr
+    intro z hz h
+    simp only [l,r,t,Finset.mem_Ico] at hz h; omega
+  have pr : PairedBudget (l∪r) (i+j) := paired_union (paired_interval a i) (paired_interval (t+4) j) dis
+  have ht : t∉l∪r := by simp only [l,r,t,Finset.mem_union,Finset.mem_Ico]; omega
+  have ht2 : t+2∉l∪r := by simp only [l,r,t,Finset.mem_union,Finset.mem_Ico]; omega
+  have pb := PairedBudget.cons (b:=t+2) (by omega) ht ht2 pr
+  have he : (s.erase (t+1)).erase (t+3) = insert t (insert (t+2) (l∪r)) := by
+    ext z; simp only [s,t,l,r,Finset.mem_insert,Finset.mem_union,Finset.mem_erase,Finset.mem_Ico]; omega
+  have hy : t+3∈s.erase (t+1) := by simp only [s,t,Finset.mem_erase,Finset.mem_Ico]; omega
+  apply punish_with_pair (d:=i+2+j) hy (by dsimp [t]; omega) (by omega) (he ▸ pb) (by dsimp [t]; omega)
+  intro z hz
+  have hz' := (Finset.mem_Ico.mp (Finset.mem_erase.mp (Finset.mem_erase.mp hz).2).2).1
+  dsimp [t] at *; omega
+
+/-- At the critical deficit on a sufficiently high interval of even length,
+every opening below the maximum loses. No existence of a drawing move is assumed. -/
+theorem high_interval_only_max (a n x : ℕ) (ha : 2*n+1≤a) (hlo : a≤x) (hsmall : x+1<a+2*n) :
+    pick (Finset.Ico a (a+2*n)) n x = .loss := by
+  let i := (x-a)/2
+  by_cases even : (x-a)%2=0
+  · have hx : x=a+2*i := by dsimp [i]; omega
+    have hn : i+1+(n-i-1)=n := by omega
+    have h := punish_lower a i (n-i-1) (by omega)
+    rwa [hn,← hx] at h
+  · have hx : x=a+2*i+1 := by dsimp [i]; omega
+    have hn : i+2+(n-i-2)=n := by omega
+    have h := punish_upper a i (n-i-2) (by omega)
+    rwa [hn,← hx] at h
+
+theorem high_interval_draw_iff_max (a n : ℕ) (hn : 0<n) (ha : 2*n+1≤a) :
+    gapValue (Finset.Ico a (a+2*n)) n = .draw ↔
+      pick (Finset.Ico a (a+2*n)) n (a+2*n-1) ≠ .loss := by
+  let s := Finset.Ico a (a+2*n)
+  let m := a+2*n-1
+  have hm : m∈s := by simp only [m,s,Finset.mem_Ico]; omega
+  have hle := high_interval_nonwin a n n le_rfl (by omega)
+  change gapValue s n = .draw ↔ pick s n m ≠ .loss
+  constructor
+  · intro draw bad
+    have loss := (gap_loss_iff s ⟨m,hm⟩ n).mpr (fun x hx => by
+      by_cases same : x=m
+      · rwa [same]
+      · obtain ⟨hx1,hx2⟩ := Finset.mem_Ico.mp hx
+        exact high_interval_only_max a n x ha hx1 (by dsimp [m] at same; omega))
+    rw [draw] at loss; cases loss
+  · intro good
+    cases hv : gapValue s n with
+    | win => exact (hle hv).elim
+    | draw => rfl
+    | loss => exact (good ((gap_loss_iff s ⟨m,hm⟩ n).mp hv m hm)).elim
 
 end CatchUpGame.Research
