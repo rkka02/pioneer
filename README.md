@@ -1,8 +1,8 @@
-# Pioneer — Open Mathematics Research & Lean 4 Verification
+# Pioneer — Open Mathematics, Theoretical Physics & Lean 4 Verification
 
-An expanding, multi-domain research repository tackling open problems in mathematics through **frozen Lean 4 challenge statements**, **multi-round frontier AI mathematical discovery**, **exact symbolic/computational certificates**, and **kernel-verified Lean 4 proofs**.
+Pioneer studies open problems in mathematics and theoretical physics. Its mathematics projects use **frozen Lean 4 challenge statements**, **multi-round frontier AI mathematical discovery**, **exact symbolic/computational certificates**, and **kernel-verified Lean 4 proofs**.
 
-Problems are organized strictly by **mathematical field** (not tied to any single benchmark list), while external references (ProofAtlas Top 500, `google-deepmind/formal-conjectures`, `teorth/optimizationproblems`, arXiv, Erdős Problems, independent conjectures) are tracked in [`catalog.json`](catalog.json). See [`METHODOLOGY.md`](METHODOLOGY.md) for the frozen-statement integrity rules and verification standards.
+Mathematical problems are organized by **field**, while external references (ProofAtlas Top 500, `google-deepmind/formal-conjectures`, `teorth/optimizationproblems`, arXiv, Erdős Problems, independent conjectures) are tracked in [`catalog.json`](catalog.json). See [`METHODOLOGY.md`](METHODOLOGY.md) for the frozen-statement integrity rules and verification standards. The [theoretical physics section](#theoretical-physics) collects research manuscripts with analytical derivations and reproducible calculations.
 
 ---
 
@@ -16,7 +16,15 @@ Problems are organized strictly by **mathematical field** (not tied to any singl
 | **Number Theory** (`additive-combinatorics`) | [**Fonollosa's Minimum Modulus Conjecture**](problems/number-theory/fonollosa-min-modulus/) | [`arXiv:2607.08366`](https://arxiv.org/abs/2607.08366) (`#1`), `formal-conjectures` | **New World Record** & Lean Package | **76** (`41` pub / `35` priv) | Kernel-proved unconditional bound **$N \ge \frac{11}{16} \cdot 2^n$** ($\forall n \ge 3$, beats Sitjar 2026 via unequal-size Bollobás set-pair inequality) + relaxation ceiling; $3/4$ bound on $\{0,1,3\}$; exact binary-core rigidity; $n = 10$ narrowed to **$724 \le N \le 1012$** ($1013\text{--}1015$ exhausted) |
 | **TCS** (`combinatorial-games`) | [**Catch-Up Game Even-Sum Draw Conjecture**](problems/tcs/catch-up-game/) | [MPRA `108784`](https://mpra.ub.uni-muenchen.de/108784/), `formal-conjectures` | **New World Record** & Lean Package | **137** (`77` pub / `60` priv) | Exact prefix draws extended to **$N = 48$** (beats $N \le 34$; all openings draw $12 \le N \le 44$); **68.20M** density boards verified ($\max \le 32$); 6-token min-loss theorem & $4K$ cap obstruction; infinite-family Lean draws (high intervals, 10-token adjacent holes, bank embeddings, upper ray) |
 
-**Repository Totals:** `5` active campaigns across `4` mathematical fields · **`400` Lean 4 kernel-verified theorems** (`243` public + `157` private, **0 `sorry`**, **0 `admit`**, **0 `native_decide`**, standard axioms `propext`, `Classical.choice`, `Quot.sound` only) · **`1` complete kernel disproof** (`TxGraffiti-3`) · **`3` world-record improvements** (`FEI #71a`, `Fonollosa 11/16`, `Catch-Up N = 48`).
+**Mathematics totals** `5` active campaigns across `4` mathematical fields · **`400` Lean 4 kernel-verified theorems** (`243` public + `157` private, **0 `sorry`**, **0 `admit`**, **0 `native_decide`**, standard axioms `propext`, `Classical.choice`, `Quot.sound` only) · **`1` complete kernel disproof** (`TxGraffiti-3`) · **`3` world-record improvements** (`FEI #71a`, `Fonollosa 11/16`, `Catch-Up N = 48`).
+
+---
+
+## Theoretical Physics
+
+**Information encoded in relative boosts at a gravitational corner** studies a pair of boundaries whose individual measurement statistics are identical for every message. Under the clock-bounded Schwarzschild area law, the paper derives the sharp threshold in relative boost for joint discrimination and the optimal probability of preparing one bit near that threshold. The one-loop exponent $257/90$ controls that probability. An explicit four-message construction succeeds with limiting probability 39.45%.
+
+[Read the manuscript (PDF)](physics/corner-boost-information/main.pdf) · [Assumptions, source and reproduction](physics/corner-boost-information/)
 
 ---
 
@@ -27,6 +35,8 @@ pioneer/
 ├── README.md                                        # Master catalog & scoreboard
 ├── METHODOLOGY.md                                   # Frozen-Challenge protocol & verification rules
 ├── catalog.json                                     # Machine-readable registry (fields, external IDs, stats)
+├── physics/
+│   └── corner-boost-information/                    # Gravitational corner boosts, paper and numerical verifier
 └── problems/
     ├── combinatorics/
     │   ├── txgraffiti-3/                            # Case B disproof (42-vertex cubic + Lean kernel proof)
