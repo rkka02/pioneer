@@ -51,6 +51,58 @@
       ]
     },
     {
+      "slug": "txgraffiti-3",
+      "title": "TxGraffiti Conjecture 3 (Regular Independent Domination vs. Matching Saturation)",
+      "field": "combinatorics",
+      "subfield": "graph-theory",
+      "path": "problems/combinatorics/txgraffiti-3",
+      "status": "disproved",
+      "conjecture_status": "disproved",
+      "sources": [
+        {
+          "catalog": "arXiv",
+          "id": "arXiv:2507.17780 (Conjecture 3)",
+          "url": "https://arxiv.org/abs/2507.17780"
+        },
+        {
+          "catalog": "google-deepmind/formal-conjectures",
+          "id": "Arxiv/2507.17780/3.lean"
+        }
+      ],
+      "tags": [
+        "graph-theory",
+        "independent-domination",
+        "matching-saturation",
+        "cubic-graphs",
+        "counterexample",
+        "lean4"
+      ],
+      "challenge_file": "TxGraffiti3/Challenge.lean",
+      "challenge_sha256": "d54daf16a077ec5cf824d8fc0f336888a413396799bc203c1b14d4cd85430d41",
+      "lean_toolchain": "leanprover/lean4:v4.36.0",
+      "lean_theorems": {
+        "public": 18,
+        "private": 10,
+        "total": 28,
+        "sorry_count": 0
+      },
+      "rounds": "1 max",
+      "disproof": {
+        "main_theorem": "TxGraffiti3.not_TxGraffitiConjecture3",
+        "counterexample_order": 42,
+        "counterexample_degree": 3,
+        "invariants": "i(G) = 14 > 13 = mu*(G)",
+        "prior_public_records": "50 vertices (cubic-domination-counterexamples) and 48 vertices (txgraffiti-order48-successor, Zenodo 22083656)",
+        "graph6_file": "scripts/counterexample.g6"
+      },
+      "highlights": [
+        "Complete zero-sorry Lean 4 kernel disproof (TxGraffiti3.not_TxGraffitiConjecture3) directly against the frozen google-deepmind/formal-conjectures statement via a 277-row decide +kernel certificate.",
+        "Reduced the smallest known connected cubic counterexample from prior public 50-vertex and 48-vertex graphs down to 42 vertices (4 non-isomorphic order-42 cubic graphs with i(G) = 14 > 13 = mu*(G)).",
+        "Constructed connected counterexamples in every degree 3t (t >= 1) via independent-set vertex blowups.",
+        "Exhaustively certified 50,724,108 positive-regular graphs through order 14 plus 12,967,515 connected 3/4/5-regular graphs, pinning 15 <= n_min <= 42 and cubic 22 <= n_min^(3) <= 42."
+      ]
+    },
+    {
       "slug": "fourier-entropy-influence",
       "title": "Fourier Entropy-Influence (FEI) Conjecture",
       "field": "analysis",
@@ -97,6 +149,104 @@
         "Kernel-verified end-to-end Lean 4 equivalence between the frozen FEI conjecture and uniform bounds on fixed-order dyadic midpoint crossings R_fixed(f) and dyadic grid energy G(f) (GridEquivalence.lean).",
         "Proved equivalence of FEI with fixed-error real matrix rank log2(r_{1/4}(M)) <= K(I_X + I_Y), plus a non-XOR CHSH selector lift achieving S(M)/(I_X+I_Y) > 3.76092558367391147455 (+0.5 bit/influence above XOR).",
         "Proved sharp rank-2 constant 2 and explicit rank-5 violation (> 2.0024983293), plus uniform P_2/I bounds for linearly recoded block-symmetric, quadratic lookup (P_2 < 60I), and block-permutation classes."
+      ]
+    },
+    {
+      "slug": "fonollosa-min-modulus",
+      "title": "Fonollosa's Minimum Modulus Conjecture",
+      "field": "number-theory",
+      "subfield": "additive-combinatorics",
+      "path": "problems/number-theory/fonollosa-min-modulus",
+      "status": "record-broken",
+      "conjecture_status": "open",
+      "sources": [
+        {
+          "catalog": "arXiv",
+          "id": "arXiv:2607.08366 (Conjecture 1)",
+          "url": "https://arxiv.org/abs/2607.08366"
+        },
+        {
+          "catalog": "google-deepmind/formal-conjectures",
+          "id": "Arxiv/2607.08366/MinModulus.lean"
+        }
+      ],
+      "tags": [
+        "additive-combinatorics",
+        "modular-arithmetic",
+        "subset-sums",
+        "bollobas-set-pairs",
+        "lean4"
+      ],
+      "challenge_file": "FonollosaMinModulus/Challenge.lean",
+      "challenge_sha256": "3a275f872e63da865d3636a81abd5d9065e75716389f450564d42515666d1d91",
+      "lean_toolchain": "leanprover/lean4:v4.36.0",
+      "lean_theorems": {
+        "public": 41,
+        "private": 35,
+        "total": 76,
+        "sorry_count": 0
+      },
+      "rounds": "3 max",
+      "world_record": {
+        "metric": "Unconditional cyclic lower bound on valid modulus N",
+        "previous_published": "N >= (1/2 + o(1)) * 2^n (Sitjar, Nov 2026, Zenodo 24228247)",
+        "new_record": "N >= (11/16) * 2^n for all n >= 3 (kernel-proved in Lean 4); n=10 narrowed to 724 <= N <= 1012",
+        "verifier": "FonollosaMinModulus/ResearchLemmas.lean"
+      },
+      "highlights": [
+        "Kernel-proved new world-record unconditional cyclic lower bound N >= (11/16) * 2^n (0.6875 * 2^n) for all n >= 3 in Lean 4 (RankSlots.cyclic_eleven_sixteenths), beating Sitjar's published bound for every n >= 6 via 8-label packing and an unequal-size Bollobas set-pair inequality (SetPairCounting.lean), and proved 11/16 is the exact ceiling of the signature-square relaxation.",
+        "Kernel-proved conditional 3/4 bound N >= (3/4) * 2^n whenever a valid set contains a nondegenerate affine copy of {0, 1, 3} (three_quarters_of_triple).",
+        "Kernel-proved exact binary-core rigidity N >= 2^n - 2^(floor(log2 n)) and forced last residue for all n >= 6 with an (n-1)-element unit-affine binary core (minModulus_le_of_affine_binary_core).",
+        "Narrowed the first open case n = 10 to 724 <= N <= 1012: raised continuous floor to 724 via exact exchange profiles and exhaustively excluded all three top boundary moduli N = 1015, 1014, 1013 via dual C++17 verifiers (562.7M six-point prefixes and 680.1M target graphs at 1015)."
+      ]
+    },
+    {
+      "slug": "catch-up-game",
+      "title": "Catch-Up Game Even-Sum Draw Conjecture",
+      "field": "tcs",
+      "subfield": "combinatorial-game-theory",
+      "path": "problems/tcs/catch-up-game",
+      "status": "record-broken",
+      "conjecture_status": "open",
+      "sources": [
+        {
+          "catalog": "MPRA",
+          "id": "MPRA Paper 108784 (von Stengel 2019)",
+          "url": "https://mpra.ub.uni-muenchen.de/108784/"
+        },
+        {
+          "catalog": "google-deepmind/formal-conjectures",
+          "id": "Paper/CatchUpConjecture.lean"
+        }
+      ],
+      "tags": [
+        "combinatorial-game-theory",
+        "minimax",
+        "prefix-games",
+        "exhaustive-certificates",
+        "lean4"
+      ],
+      "challenge_file": "CatchUpGame/Challenge.lean",
+      "challenge_sha256": "0c7b6e8f75bde1c74259441029e6abe935610064d7748cd93bb28460ccbb5df3",
+      "lean_toolchain": "leanprover/lean4:v4.36.0",
+      "lean_theorems": {
+        "public": 77,
+        "private": 60,
+        "total": 137,
+        "sorry_count": 0
+      },
+      "rounds": "3 max",
+      "world_record": {
+        "metric": "Exact Catch-Up prefix draw verification and density census",
+        "previous_published": "N <= 34 (von Stengel 2019)",
+        "new_record": "Exact draw verified through N = 48 (all openings draw for 12 <= N <= 44); 68,199,392 density boards verified through max <= 32",
+        "verifier": "scripts/audit.py"
+      },
+      "highlights": [
+        "Extended exact prefix draw verification from N <= 34 to N = 48 via dual independent C++17 solvers + Lean opening reversal, confirming every opening draws for all eligible 12 <= N <= 44.",
+        "Kernel-proved universal infinite-family draw theorems in Lean 4: critical high intervals ([a, a+2n-1], n) for all a >= 2n-1 (1 <= n <= 8 in Lean, 1 <= n <= 16 exact), all nine adjacent deletions from [a, a+9] for every a >= 1, arbitrary bank embeddings B u {W+1, W+2, W+3}, and exact upper minimum-pick ray values.",
+        "Proved 6 tokens are necessary and sufficient for a first-player loss on distinct positive integers (Lean witness {4,5,6,7,12,14} + 3,478,761-board 5-token exhaustion) and proved the universal 4K fixed-overshoot cap impossibility bound in Lean 4.",
+        "Exhaustively verified 68,199,392 nonempty even-sum boards satisfying 3|S| > 2*max(S) + 1 through max <= 32 with zero exceptions (plus 8,921,362 boards containing [1, 8]), while refuting Brown-completeness alone in Lean 4 via {1,2,3,7,9,11,14,15,22}."
       ]
     }
   ]
