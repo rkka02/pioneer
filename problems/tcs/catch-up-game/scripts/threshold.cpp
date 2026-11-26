@@ -11,6 +11,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include "paircuts.hpp"
 
 using Word = std::uint64_t;
 
@@ -21,6 +22,7 @@ class Solver {
     bool small_first;
     bool prefer_exact = false;
     bool use_pairs = false;
+    bool unit_spaced = false;
     bool inner_reversal = true;
     std::array<Word, 64> by_weight{};
     using Gaps = std::uint32_t;
@@ -89,7 +91,7 @@ class Solver {
         int count=__builtin_popcountll(mask), best=-1;
         while (mask && bank_sum+count/2<=gap) {
             const int first=weights[__builtin_ctzll(mask)];
-            if (count%2==0 && first>=std::int64_t(gap)+count/2) {
+            if (count%2==0 && weights[__builtin_ctzll(mask & (mask-1))]>=std::int64_t(gap)+count/2) {
                 std::int64_t spread=0;
                 for (Word high_tokens=mask; high_tokens;) {
                     const int a=weights[__builtin_ctzll(high_tokens)];
@@ -98,7 +100,8 @@ class Solver {
                     high_tokens &= high_tokens-1;
                 }
                 const std::int64_t surplus=gap-bank_sum-spread;
-                if (first>=gap+spread && surplus>=0) best=std::max(best,static_cast<int>(surplus));
+                if (weights[__builtin_ctzll(mask & (mask-1))]>=gap+spread && surplus>=0)
+                    best=std::max(best,static_cast<int>(surplus));
             }
             bank_sum+=first;
             mask &= mask-1;
@@ -118,6 +121,8 @@ public:
            bool exact_first = false, bool paired = false, bool reverse_ties = true)
         : weights(std::move(w)), cache(Word{1} << cache_bits), small_first(small), prefer_exact(exact_first),
           use_pairs(paired), inner_reversal(reverse_ties) {
+        unit_spaced = !weights.empty() && std::int64_t(weights.back()) - weights.front() + 1 ==
+            static_cast<std::int64_t>(weights.size());
         const int bound = weights.empty() ? starting_gap : std::max(weights.back(), starting_gap);
         while ((Word{1} << gap_bits) <= static_cast<Word>(bound)) ++gap_bits;
         initial_parity = starting_gap & 1;
@@ -147,14 +152,19 @@ public:
         if (use_pairs && gap>0) {
             const int low=weights[__builtin_ctzll(mask)], top=weights[high(mask)];
             const int count=__builtin_popcountll(mask);
+            const bool critical=count==2LL*gap && std::int64_t(top)-low+1==count;
+            if (critical && gap<=8 && std::int64_t(low)+1>=count) {
+                entry=(key<<1)|!strict;
+                return !strict; // high_interval_draw_through_eight
+            }
             // high_interval_only_max: at the critical deficit every other
             // opening on a consecutive high interval has a strict refutation.
-            if (count==2LL*gap && low>=count+1 && std::int64_t(top)-low+1==count) {
+            if (critical && low>=count+1) {
                 const bool held=!strict && !reaches(mask^(Word{1}<<high(mask)),top-gap,sum-top,true);
                 entry=(key<<1)|held;
                 return held;
             }
-            const int surplus=paired_surplus(mask,gap);
+            const int surplus=unit_spaced ? catchup::pair_bound(mask,weights.front(),gap) : paired_surplus(mask,gap);
             if (surplus>0 || (surplus==0 && strict)) {
                 entry=key<<1;
                 return false;

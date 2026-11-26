@@ -3,11 +3,15 @@
 // tokens. The opponent is unrestricted. A successful restricted search is a proof.
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdint>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <string>
+#include <thread>
 #include <vector>
+#include "paircuts.hpp"
 
 using Mask = std::uint64_t;
 using Gaps = std::uint32_t;
@@ -17,6 +21,8 @@ struct GoalRow { Gaps defender, opponent; };
 class Defense {
     int n, free_count, choices, half, handoff_rank;
     bool endpoints;
+    bool use_pairs;
+    int adaptive_free;
     Mask low_mask;
     std::vector<MemoRow> suffix;
     std::vector<GoalRow> complete;
@@ -91,12 +97,43 @@ class Defense {
         if (free) {
             const MemoRow &row = suffix[board >> (n - free_count)];
             if (row.known[my_turn] & bit_gap) return (row.hold[my_turn] & bit_gap) != 0;
-        } else if ((slot >> 1) == key) {
-            return slot & 1;
+        } else {
+            const Mask saved = __atomic_load_n(&slot,__ATOMIC_RELAXED);
+            if ((saved >> 1) == key) return saved & 1;
         }
 
         bool holds = !my_turn; // existential defender, universal opponent
         Mask options = board;
+        if (use_pairs && gap > 0) {
+            const int count = __builtin_popcountll(board), low = 1 + __builtin_ctzll(board);
+            const bool critical=count==2*gap && largest-low+1==count;
+            if (critical && gap<=8 && low+1>=count) return true; // Either player holds.
+            if (critical && low >= count+1) {
+                if (!my_turn) return true;
+                options = Mask{1} << (largest-1);
+            } else {
+                const int bound = catchup::pair_bound(board,1,gap);
+                if (bound == 1 || (bound == 0 && !my_turn)) return !my_turn;
+            }
+        }
+        if (my_turn && adaptive_free>=0 && __builtin_popcountll(board)>adaptive_free) {
+            // All options here are legal: a two-token exact catch spends its
+            // smaller positive token first, and then hands off at equality.
+            for (int u=1; 2*u<gap; ++u) {
+                const int v=gap-u;
+                const Mask pair=(Mask{1}<<(u-1)) | (Mask{1}<<(v-1));
+                if ((board & pair)!=pair) continue;
+                const Mask rest=board^pair;
+                if (rest && 3*__builtin_popcountll(rest)>2*(64-__builtin_clzll(rest))+1 &&
+                        play(rest,theirs,theirs,false)) return true;
+            }
+            const Mask below=board & ((Mask{1} << std::max(0,gap-1))-1);
+            const Mask above=board ^ below;
+            Mask allowed=(board & -board) | (Mask{1}<<(largest-1));
+            if (below) allowed |= Mask{1}<<(63-__builtin_clzll(below));
+            if (above) allowed |= above & -above;
+            options &= allowed;
+        }
         if (my_turn && !free && choices < n) {
             Mask above_low = board, below_high = board;
             for (int i = 0; i < choices && above_low; ++i) {
@@ -120,15 +157,15 @@ class Defense {
             row.known[my_turn] |= bit_gap;
             if (holds) row.hold[my_turn] |= bit_gap;
         } else {
-            slot = (key << 1) | holds;
+            __atomic_store_n(&slot,(key << 1) | holds,__ATOMIC_RELAXED);
         }
         return holds;
     }
 
 public:
-    Defense(int size, int suffix_size, int k, bool ends, bool packed, int rank)
+    Defense(int size, int suffix_size, int k, bool ends, bool packed, int rank, bool paired, int adaptive)
         : n(size), free_count(suffix_size), choices(k), half(n * (n + 1) / 4), handoff_rank(rank),
-          endpoints(ends), low_mask((Mask{1} << (n - free_count)) - 1), suffix(packed ? 0 : Mask{1} << free_count),
+          endpoints(ends), use_pairs(paired), adaptive_free(adaptive), low_mask((Mask{1} << (n - free_count)) - 1), suffix(packed ? 0 : Mask{1} << free_count),
           cache(Mask{1} << (n >= 39 ? 25 : 23)) {
         if (packed) build_suffix();
     }
@@ -145,6 +182,45 @@ public:
     bool tied_defense() { return play((Mask{1}<<n)-1,0,0,false); }
     bool defend_opening(int x) {
         return play(((Mask{1}<<n)-1) ^ (Mask{1}<<(x-1)),0,x,true);
+    }
+    void two_offsets() {
+        if (n<4 || handoff_rank || choices<n) throw std::runtime_error("offsets need N>=4 and unrestricted opposing moves");
+        const Mask full=(Mask{1}<<n)-1;
+        const bool first=play(full^7,2,4,true), second=play(full^7,4,2,false);
+        std::cout<<n<<" boundary "<<first<<' '<<second<<std::endl;
+        for (int a:{2,3}) {
+            std::cout<<n<<" holes "<<a;
+            for (int x=a+1;x<=n;++x) {
+                const Mask board=full ^ ((Mask{1}<<(a-1))-1) ^ (Mask{3}<<(x-2));
+                const int tied=(a*(a-1)/2+2*x-1)/2;
+                if (!play(board,tied,tied,false)) std::cout<<' '<<x;
+            }
+            std::cout<<std::endl;
+        }
+    }
+    // Certify P1 separately after each possible second pick. The immutable
+    // packed endgame and atomic full-key cache are shared among all workers.
+    void split_openings(const std::vector<int>& openings, int workers) {
+        if (complete.empty() || handoff_rank || choices<n || workers<1 || openings.empty())
+            throw std::runtime_error("split openings need packed unrestricted play and at least one worker");
+        std::vector<std::pair<int,int>> jobs;
+        for (int b=1;b<=n;++b) for (int a:openings) {
+            if (a<1 || a>n) throw std::runtime_error("opening outside board");
+            if (a!=b) jobs.emplace_back(a,b);
+        }
+        std::atomic<std::size_t> next{0};
+        std::mutex output;
+        std::vector<std::thread> pool;
+        for (int i=0;i<workers;++i) pool.emplace_back([&] {
+            for (auto j=next.fetch_add(1);j<jobs.size();j=next.fetch_add(1)) {
+                const auto [a,b]=jobs[j];
+                const Mask rest=((Mask{1}<<n)-1) ^ (Mask{1}<<(a-1)) ^ (Mask{1}<<(b-1));
+                const bool held=play(rest,a,b,b>=a);
+                std::lock_guard<std::mutex> lock(output);
+                std::cout<<n<<'\t'<<a<<'\t'<<b<<"\tP1\t"<<held<<std::endl;
+            }
+        });
+        for (auto& worker:pool) worker.join();
     }
     void ray_positions(int low, int high) {
         if (handoff_rank || choices<n || low<2 || high>n || low>high)
@@ -164,19 +240,30 @@ public:
 
 int main(int argc, char **argv) {
     try {
-        if (argc < 5) throw std::runtime_error("usage: defense N free_top_count choices [--ends] [--packed] [--rank r] [--tied|--defend] opening ... (or --reply a b, --ray-positions lo hi)");
+        if (argc < 5) throw std::runtime_error("usage: defense N free_top_count choices [--ends] [--packed] [--pair-cuts] [--rank r] [--tied|--defend|--split workers] opening ... (or --reply a b, --ray-positions lo hi)");
         int n = std::stoi(argv[1]), free_count = std::stoi(argv[2]), k = std::stoi(argv[3]);
         // At N=52 the board, score and two Boolean flags still fit a 64-bit key.
         if (n < 1 || n > 52 || (n * (n + 1) / 2) % 2 || free_count < 0 ||
             free_count > std::min(n, 30) || k < 1)
             throw std::runtime_error("need even total, N=1..52, suffix size 0..min(N,30), choices >=1");
-        bool ends = false, packed = false, reply = false, tied=false, defend=false;
-        int rank=0, ray_lo=0, ray_hi=0;
+        bool ends = false, packed = false, paired = false, reply = false, tied=false, defend=false, offsets=false;
+        int rank=0, ray_lo=0, ray_hi=0, workers=0;
+        int adaptive=-1;
         int first = 4;
         while (first < argc) {
             const std::string option = argv[first];
             if (option == "--ends") ends = true;
             else if (option == "--packed") packed = true;
+            else if (option == "--pair-cuts") paired = true;
+            else if (option == "--offsets") offsets=true;
+            else if (option == "--adaptive" && first+1<argc) {
+                adaptive=std::stoi(argv[++first]);
+                if (adaptive<0 || adaptive>n) throw std::runtime_error("invalid unrestricted endgame size");
+            }
+            else if (option == "--split" && first+1<argc) {
+                workers=std::stoi(argv[++first]);
+                if (workers<1) throw std::runtime_error("need at least one worker");
+            }
             else if (option == "--reply") reply = true;
             else if (option == "--tied") tied=true;
             else if (option == "--defend") defend=true;
@@ -190,8 +277,18 @@ int main(int argc, char **argv) {
             else break;
             ++first;
         }
-        if (first == argc && !tied && !ray_lo) throw std::runtime_error("supply an opening");
-        Defense verifier(n, free_count, k, ends, packed, rank);
+        if (first == argc && !tied && !ray_lo && !offsets) throw std::runtime_error("supply an opening");
+        if (paired && (rank || k < n)) throw std::runtime_error("pair cuts require unrestricted defender moves");
+        if (adaptive>=0 && (rank || free_count || k<n || workers))
+            throw std::runtime_error("adaptive endpoints need zero suffix size, all choices and no rank limit");
+        Defense verifier(n, free_count, k, ends, packed, rank, paired, adaptive);
+        if (offsets) verifier.two_offsets();
+        if (workers) {
+            std::vector<int> openings;
+            for (int i=first;i<argc;++i) openings.push_back(std::stoi(argv[i]));
+            verifier.split_openings(openings,workers);
+            return 0;
+        }
         if (ray_lo) verifier.ray_positions(ray_lo,ray_hi);
         if (tied) std::cout << n << "\tP2 tied\t" << (verifier.tied_defense()?"holds":"fails") << std::endl;
         if (reply) {

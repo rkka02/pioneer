@@ -11,6 +11,23 @@ EXPECTED = "0c7b6e8f75bde1c74259441029e6abe935610064d7748cd93bb28460ccbb5df3"
 ALLOWED = {"propext", "Classical.choice", "Quot.sound"}
 
 
+MODULE_CHECK = """open Lean in
+run_cmd do
+  let env ← getEnv
+  let mut counts : Std.HashMap Name Nat := {}
+  let allowed := [`propext, `Classical.choice, `Quot.sound]
+  for (name, _) in env.constants do
+    let some idx := env.getModuleIdxFor? name | continue
+    let mod := env.header.moduleNames[idx.toNat]!
+    unless mod == `CatchUpGame || (`CatchUpGame).isPrefixOf mod do continue
+    let axioms ← collectAxioms name
+    for used in axioms do
+      unless allowed.contains used do throwError "{name} uses {used}"
+    counts := counts.insert mod (counts.getD mod 0 + 1)
+  for (mod,count) in counts.toList do
+    logInfo m!"Audited module {mod} with {count} constants."
+"""
+
 def check_hash():
     actual = hashlib.sha256(FROZEN.read_bytes()).hexdigest()
     if actual != EXPECTED:
@@ -29,8 +46,8 @@ def main():
         r"^(?:noncomputable )?(?:theorem|def|inductive) (\w+)", source, re.MULTILINE)]
     if not names:
         raise SystemExit("No public declarations found")
-    commands = ["import CatchUpGame",
-                *(f"#print axioms {name}" for name in names)]
+    commands = ["import CatchUpGame", "import Lean.Util.CollectAxioms",
+                *(f"#print axioms {name}" for name in names), MODULE_CHECK]
     result = subprocess.run(["lake", "env", "lean", "--stdin"], cwd=ROOT,
                             input="\n".join(commands) + "\n", text=True,
                             capture_output=True)
@@ -45,7 +62,10 @@ def main():
         extra = {a.strip() for a in axioms.split(",") if a.strip()} - ALLOWED
         if extra:
             raise SystemExit(f"{name} uses unexpected axioms {extra}")
-    print(f"Audited {len(names)} public declarations.")
+    inspected = {m for m, _ in re.findall(r"Audited module (\S+) with (\d+) constants", result.stdout)}
+    if not {"CatchUpGame.Challenge", "CatchUpGame.ResearchLemmas"} <= inspected:
+        raise SystemExit("Incomplete module inventory")
+    print(f"Audited {len(names)} public research declarations.")
     check_hash()
 
 
