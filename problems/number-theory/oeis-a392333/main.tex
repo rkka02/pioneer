@@ -21,7 +21,7 @@ Chai Wah Wu asked for the first member of OEIS A392333 with at least four prime 
 \section{The finite question}
 
 For \(e>1\), let \(F(e)\) be the least \(k\ge2\) admitting
-\(1\le n_1<\cdots<n_k=e\) with \(\prod_i n_i!\) a square, when such a \(k\) exists. Erd\H{o}s and Graham studied \(D_k=\{e:F(e)=k\}\) \cite{eg,bloom}. Write \(\Omega(e)\) for the number of prime factors counted with multiplicity. OEIS A392333 lists non-semiprime composite \(e\) for which a square product with exactly five factorials is impossible. Its first 657 tabulated terms are products of three distinct primes \cite{oeis}. The question asks for the first term with \(\Omega(e)\ge4\).
+\(1\le n_1<\cdots<n_k=e\) with \(\prod_i n_i!\) a square, when such a \(k\) exists. Erd\H{o}s and Graham studied \(D_k=\{e:F(e)=k\}\) \cite{eg,bloom}. Yudin recently proved that \(D_6\) has positive lower density \cite[Theorem~1.2]{yudin}. Write \(\Omega(e)\) for the number of prime factors counted with multiplicity. OEIS A392333 lists non-semiprime composite \(e\) for which a square product with exactly five factorials is impossible. Its first 657 tabulated terms are products of three distinct primes \cite{oeis}. The question asks for the first term with \(\Omega(e)\ge4\).
 
 \begin{theorem}
 Put \(E=435643\). Every \(e<E\) with \(\Omega(e)\ge4\) admits a square product of five distinct positive-index factorials ending in \(e!\). No such product exists at \(E\), and \(F(E)=6\). Consequently \(E\) is both the requested term of A392333 and the least member of \(D_6\) with \(\Omega(e)\ge4\).
@@ -75,16 +75,17 @@ A second implementation forms the factorial signatures by sieving and maps each 
 
 The squarefree kernels in the table rule out a two-factorial square. A three-factorial square would require \(\K(a!)=Q\). Its largest prime \(q\) restricts \(a\) to the interval from \(q\) through the integer preceding the next prime, by Bertrand's postulate again. In the first row \(a=47,48,49,50,51,52\) fail at the primes \(3,23,23,2,2,2\), respectively. In the second row \(a=4271,4272\) both fail at \(2\). A four-factorial square containing \(1!\) would give a three-factorial square by removing it. Any other four-factorial square would give a five-factorial square by adjoining \(1!\).
 
-Finally the six indices
+The adjacent-pair construction of Erd\H{o}s and Graham \cite{eg}, also given in \cite[Eq.~(1.3)]{yudin}, supplies the six indices
 \[
- 12,\ 13,\ 33510,\ 33511,\ 435642,\ 435643
+ 12,\ 13,\ 33510,\ 33511,\ 435642,\ 435643.
 \]
-form three adjacent pairs. Their product of factorials has the square class of
-\(13\cdot33511\cdot435643=435643^2\). This proves \(F(E)=6\). The question about the density of \(D_6\) in Erd\H{o}s Problem 374 remains open.
+These form three adjacent pairs. Their product of factorials has the square class of
+\(13\cdot33511\cdot435643=435643^2\). This proves \(F(E)=6\). Yudin also determined the orders of growth in Problem 374. The existence of a limiting natural density for \(D_6\) is a further open question \cite[Sec.~8]{yudin}.
 
 \begin{thebibliography}{9}
 \bibitem{oeis} C. W. Wu, OEIS A392333, 2026. \url{https://oeis.org/A392333}.
 \bibitem{eg} P. Erd\H{o}s and R. L. Graham, \emph{On products of factorials}, Bulletin of the Institute of Mathematics, Academia Sinica 4 (1976), 337--355. \url{https://users.renyi.hu/~p_erdos/1976-25.pdf}.
 \bibitem{bloom} T. F. Bloom, \emph{Erd\H{o}s Problem 374}. \url{https://www.erdosproblems.com/374}.
+\bibitem{yudin} F. Yudin, \emph{Square products of factorials and a conjecture of Erd\H{o}s and Graham}, arXiv:2610.01899, 2026. \url{https://arxiv.org/abs/2610.01899}.
 \end{thebibliography}
 \end{document}

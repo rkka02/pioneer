@@ -1,6 +1,6 @@
 # The least member of the Erdős–Graham set D₆ with four or more prime factors
 
-The first member of A392333 with at least four prime factors, counted with multiplicity, is **435643 = 13 · 23 · 31 · 47**. Five factorials suffice for all 193,915 earlier endpoints with that many prime factors. At 435643 the minimum is six. This determines a finite extremum in the Erdős–Graham set D₆. The asymptotic density question is open.
+The first member of A392333 with at least four prime factors, counted with multiplicity, is **435643 = 13 · 23 · 31 · 47**. Five factorials suffice for all 193,915 earlier endpoints with that many prime factors. At 435643 the minimum is six. This determines a finite extremum in the Erdős–Graham set D₆. Fedir Yudin determined the order of growth of the counting function of D₆ and proved positive lower density. Whether D₆ has a limiting natural density remains open. [Yudin, Theorem 1.2 and Section 8](https://arxiv.org/html/2610.01899v1)
 
 [Paper (PDF)](main.pdf) · [LaTeX source](main.tex) · [OEIS question](https://oeis.org/A392333) · [Erdős Problem 374](https://www.erdosproblems.com/374)
 
