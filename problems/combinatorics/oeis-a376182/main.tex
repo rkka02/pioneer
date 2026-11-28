@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\title{A parity decomposition and an inverse for OEIS A376182}
+\author{Pioneer project}
+\date{28 November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+Werner Schulte conjectured that the triangle A376182, read in row order, lists each positive integer exactly once. We prove this by identifying each parity class in row \(n\) with the next block of integers of that parity. The decomposition also gives an inverse using one integer square root and an exact formula for the displacement of each entry from its row-major index.
+\end{abstract}
+
+\section{The triangle and its parity classes}
+
+The triangle in OEIS A376182 \cite{triangle} is defined by
+\[
+ T(n,k)=\frac{2n^2+4n+1-(-1)^n}{4}-k
+        -(1+(-1)^k)(n-k)
+ \qquad(1\le k\le n).
+\]
+The first five rows are
+\[
+ (1),\qquad (3,2),\qquad (7,4,5),\qquad
+ (11,6,9,8),\qquad (17,10,15,12,13).
+\]
+Let \(O_n\) and \(E_n\) be the numbers of odd and even column indices, counted over all rows from \(1\) through \(n\). Put \(O_0=E_0=0\). Grouping rows in pairs gives
+\begin{align*}
+O_{2m}&=m(m+1), & O_{2m+1}&=(m+1)^2,\\
+E_{2m}&=m^2,    & E_{2m+1}&=m(m+1).
+\end{align*}
+The numbers of odd and even columns in row \(n\) are therefore \(O_n-O_{n-1}=\lceil n/2\rceil\) and \(E_n-E_{n-1}=\lfloor n/2\rfloor\).
+
+\begin{theorem}\label{thm:block}
+The odd entries of row \(n\), in their displayed order, are the numbers \(2q-1\) for \(q=O_n,O_n-1,\ldots,O_{n-1}+1\). The even entries, in their displayed order, are the numbers \(2q\) for \(q=E_{n-1}+1,\ldots,E_n\). Consequently the row-major sequence is a permutation of the positive integers.
+\end{theorem}
+
+\begin{proof}
+The constant term in \(T(n,k)\) is \(2O_n\), as is verified for \(n=2m\) and \(n=2m+1\). Also \(O_n-E_{n-1}=n\), by the same two parity cases. Thus
+\[
+ T(n,2j-1)=2(O_n-j+1)-1,\qquad
+ T(n,2j)=2(E_{n-1}+j).
+\]
+As \(j\) runs over the valid indices in each formula, the asserted blocks follow. Their index intervals across successive rows are disjoint and cover all positive indices because \(O_n,E_n\to\infty\). The odd block and even block have opposite parity, so every positive integer occurs exactly once.
+\end{proof}
+
+\section{Inverse and displacement}
+
+\begin{theorem}
+Given a positive integer \(u\), set \(q=\lceil u/2\rceil\) and \(m=\lfloor\sqrt{q-1}\rfloor\). Its unique position \((n,k)\) in the triangle is
+\[
+\begin{array}{c|cc|c}
+ & q\le m(m+1) & q>m(m+1) & k\\ \hline
+u\text{ odd} & n=2m   & n=2m+1 & 2(O_n-q)+1\\
+u\text{ even}& n=2m+1 & n=2m+2 & 2(q-E_{n-1}).
+\end{array}
+\]
+The index of \(u\) in the flattened sequence is \(n(n-1)/2+k\).
+\end{theorem}
+
+\begin{proof}
+The definition of \(m\) gives \(m^2<q\le(m+1)^2\). For odd \(u\), the two consecutive intervals of the form \((O_{n-1},O_n]\) between \(m^2\) and \((m+1)^2\) have separating endpoint \(O_{2m}=m(m+1)\). For \(m=0\), the first interval is empty and \(n=1\). For even \(u\), the corresponding separator is \(E_{2m+1}=m(m+1)\). Applying Theorem~\ref{thm:block} then yields \(k\). There are \(n(n-1)/2\) entries before row \(n\), which gives the flattened index.
+\end{proof}
+
+For instance, \(u=56\) yields \(q=28\) and \(m=5\). The even row is \(11\), and \(E_{10}=25\), so the column is \(6\). Thus \(56\) is at flattened index \(61\).
+
+The formulas also give the signed displacement from the flattened position \(i=n(n-1)/2+k\):
+\[
+ T(n,k)-i=
+ \begin{cases}
+ n+\lceil n/2\rceil-2k, & k\text{ odd},\\
+ -\lfloor n/2\rfloor, & k\text{ even}.
+ \end{cases}
+\]
+Indeed the constants after subtracting \(i\) are \(2O_n-n(n-1)/2\) and \(2E_{n-1}-n(n-1)/2\), respectively. If \(A(i)\) denotes the flattened sequence, this shows \(A(i)=i+O(\sqrt i)\). At the first column of row \(n\), the quotient \((A(i)-i)/\sqrt i\) tends to \(3/\sqrt{2}\) as \(n\to\infty\), so the order \(\sqrt i\) is attained.
+
+\begin{thebibliography}{9}
+\bibitem{triangle}
+W. Schulte, \emph{Triangle read by rows}, The On-Line Encyclopedia of Integer Sequences,
+\href{https://oeis.org/A376182}{A376182}, 2024.
+\end{thebibliography}
+\end{document}

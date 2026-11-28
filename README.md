@@ -16,7 +16,26 @@ Mathematical problems are organized by **field**, while external references (Pro
 | **Number Theory** (`additive-combinatorics`) | [**Fonollosa's Minimum Modulus Conjecture**](problems/number-theory/fonollosa-min-modulus/) | [`arXiv:2607.08366`](https://arxiv.org/abs/2607.08366) (`#1`), `formal-conjectures` | **New World Record** & Lean Package | **76** (`41` pub / `35` priv) | Kernel-proved unconditional bound **$N \ge \frac{11}{16} \cdot 2^n$** ($\forall n \ge 3$, beats Sitjar 2026 via unequal-size Bollobás set-pair inequality) + relaxation ceiling; $3/4$ bound on $\{0,1,3\}$; exact binary-core rigidity; $n = 10$ narrowed to **$724 \le N \le 1012$** ($1013\text{--}1015$ exhausted) |
 | **TCS** (`combinatorial-games`) | [**Catch-Up Game Even-Sum Draw Conjecture**](problems/tcs/catch-up-game/) | [MPRA `108784`](https://mpra.ub.uni-muenchen.de/108784/), `formal-conjectures` | **New World Record** & Lean Package | **137** (`77` pub / `60` priv) | Exact prefix draws extended to **$N = 48$** (beats $N \le 34$; all openings draw $12 \le N \le 44$); **68.20M** density boards verified ($\max \le 32$); 6-token min-loss theorem & $4K$ cap obstruction; infinite-family Lean draws (high intervals, 10-token adjacent holes, bank embeddings, upper ray) |
 
-**Mathematics totals** `5` active campaigns across `4` mathematical fields · **`400` Lean 4 kernel-verified theorems** (`243` public + `157` private, **0 `sorry`**, **0 `admit`**, **0 `native_decide`**, standard axioms `propext`, `Classical.choice`, `Quot.sound` only) · **`1` complete kernel disproof** (`TxGraffiti-3`) · **`3` world-record improvements** (`FEI #71a`, `Fonollosa 11/16`, `Catch-Up N = 48`).
+**Totals for the five campaigns above** `5` active campaigns across `4` mathematical fields · **`400` Lean 4 kernel-verified theorems** (`243` public + `157` private, **0 `sorry`**, **0 `admit`**, **0 `native_decide`**, standard axioms `propext`, `Classical.choice`, `Quot.sound` only) · **`1` complete kernel disproof** (`TxGraffiti-3`) · **`3` world-record improvements** (`FEI #71a`, `Fonollosa 11/16`, `Catch-Up N = 48`).
+
+---
+
+## Left to Solve manuscripts
+
+These papers address conjectures from the cited source entries. Each links to the written argument, the exact Lean proof and the public submission. The project requires human review for a newly translated statement before opening its formal proof stage. Proofs supplied during that review are linked in full.
+
+| Problem | Result | Submission |
+|---|---|---|
+| [A074360](problems/combinatorics/oeis-a074360/main.pdf) | Proves Mathar’s rational generating function by solving four coefficient recurrences. [Files](problems/combinatorics/oeis-a074360/) | [Proof PR](https://github.com/lefttosolve2/open-math-agents/pull/24885) |
+| [A097154](problems/number-theory/oeis-a097154/main.pdf) | Proves that 0 and 89 are the only decimal fixed points. The paper gives the classification in every base. [Files](problems/number-theory/oeis-a097154/) | [Proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/5188#issuecomment-7237354412) |
+| [A128607](problems/number-theory/oeis-a128607/main.pdf) | Exhibits a cube with square divisor sum and a square with cubic divisor sum, outside both lists of exceptions. [Files](problems/number-theory/oeis-a128607/) | [Proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/24897) |
+| [A181411](problems/number-theory/oeis-a181411/main.pdf) | Proves the conjectured limit π²/4 for the normalized binomial divisor sum. The paper supplies an explicit smoothing bound. [Files](problems/number-theory/oeis-a181411/) | [Proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/24831) |
+| [A250362](problems/combinatorics/oeis-a250362/main.pdf) | Counts admissible arrays in closed form and proves both of Barker’s conjectures. [Files](problems/combinatorics/oeis-a250362/) | [Proof PR](https://github.com/lefttosolve2/open-math-agents/pull/24872) |
+| [A308758](problems/combinatorics/oeis-a308758/main.pdf) | Parametrizes four-part partitions by their gaps and proves both the recurrence and the generating function. [Files](problems/combinatorics/oeis-a308758/) | [Proof PR](https://github.com/lefttosolve2/open-math-agents/pull/25084) |
+| [A321225](problems/combinatorics/oeis-a321225/main.pdf) | Shows how nine consecutive cuts determine a five-digit extension and proves Wu’s two formulas. [Files](problems/combinatorics/oeis-a321225/) | [Proof PR](https://github.com/lefttosolve2/open-math-agents/pull/24880) |
+| [A376182](problems/combinatorics/oeis-a376182/main.pdf) | Proves each positive integer occurs exactly once and gives its row and column. [Files](problems/combinatorics/oeis-a376182/) | [Proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/25014) |
+
+The drafts and proofs were prepared with OpenAI Codex. The repository records the statement and proof hashes in [the catalog](catalog.json). To reproduce a kernel check, clone [open-math-agents](https://github.com/lefttosolve2/open-math-agents), run its `tools/oma.sh setup`, and follow the command in the paper’s directory.
 
 ---
 

@@ -1,0 +1,63 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.83in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\begin{document}
+\begin{center}
+{\Large\bfseries The cubic coefficient generating function for OEIS A074360}\par
+\medskip
+Pioneer project \quad $\cdot$ \quad 28 November 2026
+\end{center}
+
+\begin{abstract}
+The first four coefficient sequences of a polynomial recurrence satisfy a triangular system of ordinary generating functions. Solving that system proves R. J. Mathar's conjectured rational generating function for the cubic coefficients in OEIS A074360.
+\end{abstract}
+
+The OEIS entry \cite{oeis} sets \(\nu_0(q)=1\), \(\nu_1(q)=2\), and
+\[
+\nu_{n+2}(q)=2\nu_{n+1}(q)+2(1+q+\cdots+q^n)\nu_n(q)
+\qquad(n\ge0).
+\]
+It lists \(a_n=[q^3]\nu_n(q)\). R. J. Mathar conjectured the following ordinary generating function in the entry on 22 July 2009.
+
+\begin{theorem}
+\[
+\sum_{n\ge0}a_nx^n
+=\frac{8x^5(1+x)(12x^4+24x^3-2x^2-16x+5)}
+{(2x^2+2x-1)^4}.
+\]
+\end{theorem}
+
+\begin{proof}
+For \(j\ge0\) let \(c_{j,n}=[q^j]\nu_n(q)\) and \(C_j=\sum_{n\ge0}c_{j,n}x^n\). Extracting \(q^j\) from the recurrence gives
+\[
+c_{j,n+2}=2c_{j,n+1}+2c_{j,n}
+  +2\sum_{i=1}^{\min(j,n)}c_{j-i,n}\qquad(n\ge0).
+\]
+For any fixed \(i\), the contribution to the generating function from the last sum starts at \(n=i\). Set \(D=1-2x-2x^2\) and \(U=2x^2\). Because the degree-zero coefficients of \(\nu_0,\nu_1,\nu_2\) are \(1,2,6\), and their positive-degree coefficients vanish, this yields
+\begin{align*}
+D C_0 &= 1,\\
+D C_1 &= U (C_0-1),\\
+D C_2 &= U (C_1+C_0-1-2x),\\
+D C_3 &= U (C_2+C_1+C_0-1-2x-6x^2).
+\end{align*}
+For instance, the \(i=1\) and \(i=2\) summands for \(j=3\) remove only zero initial coefficients of \(C_2\) and \(C_1\), respectively. The \(i=3\) summand removes the degree-zero, degree-one, and degree-two terms of \(C_0\).
+
+Multiplying the last line by \(D^3\) and substituting the other three lines gives
+\[
+D^4 C_3=
+\begin{aligned}U\bigl(&U[U(1-D)+D-D^2(1+2x)]\\
+       &+DU(1-D)+D^2-D^3(1+2x+6x^2)\bigr).\end{aligned}
+\]
+Substitution of \(D=1-2x-2x^2\) and \(U=2x^2\) simplifies the right side to \(8x^5(1+x)(12x^4+24x^3-2x^2-16x+5)\). The constant term of \(D\) is 1, so division by \(D^4\) is valid in \(\mathbb Z[[x]]\). As \(D^4=(2x^2+2x-1)^4\), this is the asserted formula.
+\end{proof}
+
+For example, the recurrence gives \(\nu_5=120+80q+64q^2+40q^3+8q^4\), so \(a_5=40\). The generating function starts at degree five with the same coefficient. The next two coefficients are 232 and 1072.
+
+\begin{thebibliography}{1}
+\bibitem{oeis}
+OEIS Foundation Inc., entry A074360, submitted by Y. Kelly Itakura (21 August 2002), with a conjecture by R. J. Mathar (22 July 2009).
+\url{https://oeis.org/A074360}
+\end{thebibliography}
+\end{document}

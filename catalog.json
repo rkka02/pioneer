@@ -248,6 +248,350 @@
         "Proved 6 tokens are necessary and sufficient for a first-player loss on distinct positive integers (Lean witness {4,5,6,7,12,14} + 3,478,761-board 5-token exhaustion) and proved the universal 4K fixed-overshoot cap impossibility bound in Lean 4.",
         "Exhaustively verified 68,199,392 nonempty even-sum boards satisfying 3|S| > 2*max(S) + 1 through max <= 32 with zero exceptions (plus 8,921,362 boards containing [1, 8]), while refuting Brown-completeness alone in Lean 4 via {1,2,3,7,9,11,14,15,22}."
       ]
+    },
+    {
+      "slug": "oeis-a074360",
+      "title": "A generating function for the cubic coefficients of a polynomial recurrence",
+      "field": "combinatorics",
+      "subfield": "generating-functions",
+      "path": "problems/combinatorics/oeis-a074360",
+      "status": "proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A074360",
+          "url": "https://oeis.org/A074360"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a074360",
+          "url": "https://lefttosolve.com/p/oeis-a074360"
+        }
+      ],
+      "challenge_sha256": "2369578992415bd9530bd8e1cc287afe747a85185855740d812479cb50df83f5",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/lefttosolve2/open-math-agents/88838da7f212f235c6426e67244c02a1e958cb5b/statements/oeis-a074360.lean",
+        "proof_sha256": "3a03c8dba171838add0eece91564ab808ef22af976cd97db1fafa6b3aca8a003",
+        "target": "OMA.S_oeis_a074360.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-pr",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/24885"
+      },
+      "highlights": [
+        "Proves Mathar’s rational generating function by solving four coefficient recurrences."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a097154",
+      "title": "Sharp digit-reversal gaps and fixed points",
+      "field": "number-theory",
+      "subfield": "digital-functions",
+      "path": "problems/number-theory/oeis-a097154",
+      "status": "proof-supplied-for-statement-review",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A097154",
+          "url": "https://oeis.org/A097154"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a097154",
+          "url": "https://lefttosolve.com/p/oeis-a097154"
+        }
+      ],
+      "challenge_sha256": "fd36544af9bdf206740fd9f21fca7d0aa04b2330167ad425f415554a2cd36d1a",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/rkka02/open-math-agents/a524e3feb8a20564312c2cef4e6eb38951f16d17/statements/oeis-a097154.lean",
+        "proof_sha256": "e5a5523eec6bf831e53ba232e8100ae6d13e9b69e7a530b61fde2b5fa22904f2",
+        "target": "OMA.S_oeis_a097154.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-attached-to-statement-review",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/5188#issuecomment-7237354412"
+      },
+      "highlights": [
+        "Proves that 0 and 89 are the only decimal fixed points. The paper gives the classification in every base."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a128607",
+      "title": "Cubic counterexamples for perfect powers and their divisor sums",
+      "field": "number-theory",
+      "subfield": "divisor-sums",
+      "path": "problems/number-theory/oeis-a128607",
+      "status": "proof-supplied-for-statement-review",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A128607",
+          "url": "https://oeis.org/A128607"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a128607",
+          "url": "https://lefttosolve.com/p/oeis-a128607"
+        }
+      ],
+      "challenge_sha256": "ee0682fc3d971725140e40541c6053c833a0b84f996c0c0de0caac3b5e64ac88",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/rkka02/open-math-agents/31ba2a67e255b019b52a57dd3a58c01953453c69/statements/oeis-a128607.lean",
+        "proof_sha256": "c873fae8fa39340053281ba1d6dbfd5e3c40cb757940a3af12d359942541d713",
+        "target": "OMA.S_oeis_a128607.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-attached-to-statement-review",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/24897"
+      },
+      "highlights": [
+        "Exhibits a cube with square divisor sum and a square with cubic divisor sum, outside both lists of exceptions."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a181411",
+      "title": "A binomial mean of the sum of divisors",
+      "field": "number-theory",
+      "subfield": "analytic-number-theory",
+      "path": "problems/number-theory/oeis-a181411",
+      "status": "proof-supplied-for-statement-review",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A181411",
+          "url": "https://oeis.org/A181411"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a181411",
+          "url": "https://lefttosolve.com/p/oeis-a181411"
+        }
+      ],
+      "challenge_sha256": "717b81aa1ad3cded61a9e051ef852cdbc2dc895077c596bb2ef51c4fcfa88af7",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/rkka02/open-math-agents/1dc4a8086fb6dcc809f3a29d5732713328c18a33/statements/oeis-a181411.lean",
+        "proof_sha256": "dbae829c1355215e2cac844cd6b84c2ead50379ca8a43243f986356533daa1f1",
+        "target": "OMA.S_oeis_a181411.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-attached-to-statement-review",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/24831"
+      },
+      "highlights": [
+        "Proves the conjectured limit π²/4 for the normalized binomial divisor sum. The paper supplies an explicit smoothing bound."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a250362",
+      "title": "Counting arrays with a bounded multiplicity",
+      "field": "combinatorics",
+      "subfield": "enumeration",
+      "path": "problems/combinatorics/oeis-a250362",
+      "status": "proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A250362",
+          "url": "https://oeis.org/A250362"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a250362",
+          "url": "https://lefttosolve.com/p/oeis-a250362"
+        }
+      ],
+      "challenge_sha256": "2f18c51bc847bb1742a9cc17e89cdca8540bdbde22061336a650e1f7fd7c7197",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/lefttosolve2/open-math-agents/88838da7f212f235c6426e67244c02a1e958cb5b/statements/oeis-a250362.lean",
+        "proof_sha256": "22230f558961ca41e73dd00fa99d8f3422768c23b8c8c8840f6406773279d562",
+        "target": "OMA.S_oeis_a250362.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-pr",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/24872"
+      },
+      "highlights": [
+        "Counts admissible arrays in closed form and proves both of Barker’s conjectures."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a321225",
+      "title": "The recurrence and generating function for periodic decimal chunks",
+      "field": "combinatorics",
+      "subfield": "combinatorics-on-words",
+      "path": "problems/combinatorics/oeis-a321225",
+      "status": "proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A321225",
+          "url": "https://oeis.org/A321225"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a321225",
+          "url": "https://lefttosolve.com/p/oeis-a321225"
+        }
+      ],
+      "challenge_sha256": "63983fdd8f24b65545dd4d0642897659017366330e52dc82395272ae6f643382",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/lefttosolve2/open-math-agents/88838da7f212f235c6426e67244c02a1e958cb5b/statements/oeis-a321225.lean",
+        "proof_sha256": "b98a9732fe3d36d153f4fb1757f0eeb4a121bf4be18de8f1d4b444c251c3aa7e",
+        "target": "OMA.S_oeis_a321225.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-pr",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/24880"
+      },
+      "highlights": [
+        "Shows how nine consecutive cuts determine a five-digit extension and proves Wu’s two formulas."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a376182",
+      "title": "A parity decomposition and an inverse for Schulte’s triangle",
+      "field": "combinatorics",
+      "subfield": "permutations",
+      "path": "problems/combinatorics/oeis-a376182",
+      "status": "proof-supplied-for-statement-review",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A376182",
+          "url": "https://oeis.org/A376182"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a376182",
+          "url": "https://lefttosolve.com/p/oeis-a376182"
+        }
+      ],
+      "challenge_sha256": "2079c58134b823a06870109031e95c5e1f87fbfeb073667b93da65e019403ed5",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/rkka02/open-math-agents/d7284aa2e8500309448f18b226204f2e24c6b020/statements/oeis-a376182.lean",
+        "proof_sha256": "8ccd60044cd51c4482cd73d367db6650b3837b66d7ebe1c2221af4542adbaefd",
+        "target": "OMA.S_oeis_a376182.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-attached-to-statement-review",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25014"
+      },
+      "highlights": [
+        "Proves each positive integer occurs exactly once and gives its row and column."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a308758",
+      "title": "A weighted count of partitions into four parts",
+      "field": "combinatorics",
+      "subfield": "integer-partitions",
+      "path": "problems/combinatorics/oeis-a308758",
+      "status": "proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A308758",
+          "url": "https://oeis.org/A308758"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a308758",
+          "url": "https://lefttosolve.com/p/oeis-a308758"
+        }
+      ],
+      "challenge_sha256": "6cd455af42c1711737aad1255a269a749278330031898e34819dde5b4811ad2f",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/lefttosolve2/open-math-agents/88838da7f212f235c6426e67244c02a1e958cb5b/statements/oeis-a308758.lean",
+        "proof_sha256": "e1323eb16270ad43a925aad1a8d34789c2b2481641a029905ba55a582f2da309",
+        "target": "OMA.S_oeis_a308758.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-pr",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25084"
+      },
+      "highlights": [
+        "Parametrizes four-part partitions by their gaps and proves both the recurrence and the generating function."
+      ],
+      "manuscript": "main.pdf"
     }
   ]
 }

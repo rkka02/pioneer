@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\title{Sharp digit-reversal gaps and the fixed points in OEIS A097154}
+\author{Pioneer project}
+\date{28 November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+We determine the smallest positive absolute change under digit reversal at each fixed length and base. This implies that reversing the digits and subtracting the largest digit has exactly one positive fixed point in every base \(b\geq 3\), namely the number with digits \(b-2,b-1\), and none in base two. In decimal this proves the conjecture in OEIS A097154 that the fixed points are \(0\) and \(89\).
+\end{abstract}
+
+\section{Reversal gaps}
+
+For \(b\ge2\), write \(R_b(n)\) for the integer obtained by reversing the ordinary base-\(b\) digit string of \(n\), and \(M_b(n)\) for the largest digit. Reversed strings may start with zeros. Set \(R_b(0)=M_b(0)=0\). The entry A097154 asks whether the only fixed points of \(R_{10}-M_{10}\) are \(0\) and \(89\) \cite{oeis}. We prove the base-\(b\) statement by determining the smallest nonzero gap at every length.
+
+\begin{theorem}\label{thm:gap}
+For \(L\ge2\), the least value of \(\lvert R_b(n)-n\rvert\) over all \(L\)-digit positive integers with \(R_b(n)\ne n\) is
+\[
+g_b(L)=
+\begin{cases}
+ b^{(L-2)/2}(b-1), & L \text{ even},\\[2pt]
+ b^{(L-3)/2}(b^2-1), & L \text{ odd}.
+\end{cases}
+\]
+Equality holds precisely when all paired digits agree except the pair closest to the center, whose digits differ by one.
+\end{theorem}
+
+\begin{proof}
+Suppose there are \(s\) identical pairs of digits at the two ends before the first unequal pair is reached. Removing the matched pairs divides the reversal gap by \(b^s\). The remaining \(m=L-2s\) digits \(c_0,\ldots,c_{m-1}\) are numbered from most to least significant. Put \(h=\lfloor m/2\rfloor\), and interchange the string with its reverse if needed to have \(c_0>c_{m-1}\). The signed difference after removing the matched pairs is
+\[
+\sum_{j=0}^{h-1}(c_j-c_{m-1-j})(b^{m-1-j}-b^j).
+\]
+The term for \(j=0\) is at least \(b^{m-1}-1\). The sum of the remaining terms is at least
+\(- (b-1)\sum_{j=1}^{h-1}(b^{m-1-j}-b^j)\).
+The resulting lower bound simplifies to
+\[
+\begin{cases}
+2b^h-b-1, & m=2h,\\
+(b+1)(b^h-1), & m=2h+1.
+\end{cases}
+\]
+These bounds are positive, so they also bound the absolute gap of the remaining string. For \(m=2h\) the first bound is at least \(b^{h-1}(b-1)\), with difference \((b+1)(b^{h-1}-1)\). For \(m=2h+1\) the second is at least \(b^{h-1}(b^2-1)\), with the same difference. Multiplication by \(b^s\) gives \(g_b(L)\) in either case. Equality requires \(h=1\), so that the first unequal pair is the innermost pair, and then its digit difference must be one. Such strings exist for every \(b\) and \(L\). For example, take all digits to be one and change the less significant digit of the innermost pair to zero.
+\end{proof}
+
+For decimal lengths \(2,3,4,5,6\), the least nonzero gaps are \(9,99,90,990,900\). For length four, \(1101\) attains the bound since its reverse is \(1011\).
+
+\section{Fixed points}
+
+\begin{theorem}\label{thm:fixed}
+The nonnegative solutions of \(R_b(n)-M_b(n)=n\) are
+\[
+\begin{cases}
+\{0\}, & b=2,\\
+\{0,b^2-b-1\}, & b\ge3.
+\end{cases}
+\]
+\end{theorem}
+
+\begin{proof}
+If \(n>0\) is a fixed point, it satisfies
+\(1\le R_b(n)-n=M_b(n)\le b-1\). A one-digit number is unchanged by reversal, and Theorem~\ref{thm:gap} rules out three or more digits. Write a two-digit solution as \(n=bu+v\) with \(1\le u\le b-1\), \(0\le v\le b-1\). Now \(R_b(n)-n=(b-1)(v-u)\), so \(v-u=1\) and \(M_b(n)=b-1\). Therefore \(v=b-1\) and \(u=b-2\). These digits give a solution when \(b\ge3\), and the leading digit condition excludes them when \(b=2\). Zero satisfies the equation in every base.
+\end{proof}
+
+In particular \(R_{10}(89)-M_{10}(89)=98-9=89\). The fixed-point classification concerns equality in one step and does not classify the tails or cycles of the iteration.
+
+\begin{thebibliography}{9}
+\bibitem{oeis}
+J. Earls, \emph{Number of iterations of \(f(x)=\operatorname{reverse}(x)-\operatorname{maxdigit}(x)\) needed to reach zero}, The On-Line Encyclopedia of Integer Sequences,
+\href{https://oeis.org/A097154}{A097154}, 2004.
+\end{thebibliography}
+\end{document}

@@ -1,0 +1,128 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newcommand{\egcd}{\operatorname{egcd}}
+
+\title{Cubic counterexamples for perfect powers and their divisor sums}
+\author{Pioneer project}
+\date{28 November 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The comments to OEIS A128607 and A128608 ask whether there are further
+terms with prime-factor exponent gcd greater than two. We give witnesses
+on both sides of the divisor-sum map. The least new input-side witness is
+$424462145606577000=751530^3$, whose divisor sum is $1292054400^2$.
+On the output side, the divisor sum of $21531558370^2$ is
+$10773399^3$. The witnesses have short multiplicative certificates.
+\end{abstract}
+
+For $u>1$ let $\egcd(u)$ be the gcd of the exponents in its prime
+factorization. The sequence A128607 lists the perfect powers $u$ for which
+$\sigma(u)$ is a perfect power. Its commentary asks if any entries besides
+$81$ and $343$ have $\egcd(u)>2$. The paired sequence A128608 gives the
+corresponding values $\sigma(u)$ and asks for a higher power besides the
+value $1729^3$. We use these numerical exceptions as given in the two
+entries~\cite{oeis607,oeis608}.
+
+\begin{theorem}
+There is an $N>343$ with $\egcd(N)=3$ and $\egcd(\sigma(N))=2$.
+The least $N>343$ for which both $N$ and $\sigma(N)$ are perfect powers
+and $\egcd(N)>2$ is $424462145606577000$.
+There is also an $M\ne 1857437604$ with $\egcd(M)=2$ and
+$\egcd(\sigma(M))=3$, namely $463608005840717056900$.
+\end{theorem}
+
+\section{Witnesses}
+
+For distinct primes $p_i$ the identity
+\[
+ \sigma\left(\prod_i p_i^e\right)=
+ \prod_i (1+p_i+\cdots+p_i^e)
+\]
+follows by writing each divisor as a product of prime powers. The two
+certificates below give the factorization of every factor in the right
+side. The primality of the displayed bases can be checked by trial division
+up to their square roots.
+
+For $N=(2\cdot 3\cdot 5\cdot 13\cdot 41\cdot 47)^3=751530^3$ use
+\[
+\begin{array}{r|r|l}
+p & 1+p+p^2+p^3 & \text{Factorization}\\ \hline
+2 & 15 & 3\cdot5\\
+3 & 40 & 2^3\cdot5\\
+5 & 156 & 2^2\cdot3\cdot13\\
+13 & 2380 & 2^2\cdot5\cdot7\cdot17\\
+41 & 70644 & 2^2\cdot3\cdot7\cdot29^2\\
+47 & 106080 & 2^5\cdot3\cdot5\cdot13\cdot17
+\end{array}
+\]
+The product is
+$2^{14}3^45^47^2 13^2 17^2 29^2=1292054400^2$. The input has all
+prime-factor exponents equal to $3$. Its divisor sum has exponent gcd
+$2$. The same calculation also gives another cubic input witness:
+multiplying $N$ by the coprime cube $343$ multiplies its divisor sum by
+$400=20^2$.
+
+For $M=(2\cdot5\cdot7\cdot29\cdot37\cdot439\cdot653)^2=21531558370^2$
+use
+\[
+\begin{array}{r|r|l}
+p & 1+p+p^2 & \text{Factorization}\\ \hline
+2 & 7 & 7\\
+5 & 31 & 31\\
+7 & 57 & 3\cdot19\\
+29 & 871 & 13\cdot67\\
+37 & 1407 & 3\cdot7\cdot67\\
+439 & 193161 & 3\cdot31^2\cdot67\\
+653 & 427063 & 7\cdot13^2\cdot19^2
+\end{array}
+\]
+Here the product is $(3\cdot7\cdot13\cdot19\cdot31\cdot67)^3=10773399^3$.
+Both roots are squarefree, giving the asserted gcds.
+
+The certificates can be found by modular arithmetic on exponent vectors.
+For the first, reduce the exponents of $(p+1)(p^2+1)$ modulo two and
+find a nonempty binary dependence among the vectors. For the second,
+factor $p^2+p+1$ and look for a subset whose vectors sum to zero modulo
+three. In the latter case splitting a finite prime list into two halves
+allows matching subset-sum vectors to their additive inverses.
+
+\section{Minimality on the input side}
+
+If $\egcd(u)>2$, then $u=b^e$ with either $e=4$ or $e$ an odd
+prime. In fact, any integer greater than two either has an odd prime
+divisor or is divisible by four. For $2\leq u\leq N$, an exponent $e$
+satisfies $2^e\leq N$, hence $e\leq58$. For each of the relevant exponents,
+enumerate $2\leq b\leq\lfloor N^{1/e}\rfloor$. The required base
+factorizations are obtained by a least-prime-factor sieve up to
+$751530=\lfloor N^{1/3}\rfloor$. Multiplying the exact geometric
+sums yields $\sigma(b^e)$. Testing that number for being a perfect power
+gives the following complete output, grouped by exponent.
+\[
+\begin{array}{r|r|r|r}
+e & b & b^e & \sigma(b^e)\\ \hline
+3 & 7 & 343 & 400\\
+3 & 751530 & 424462145606577000 & 1669404572559360000\\
+4 & 3 & 81 & 121
+\end{array}
+\]
+The computation is reproduced by the accompanying C verifier, using
+GMP integer roots, exact division, and its deterministic perfect-power
+test. Duplicate representations $u=b^e$ would be harmless because every
+higher-exponent term must be encountered at least once.
+
+\begin{thebibliography}{9}
+\bibitem{oeis607}
+OEIS Foundation Inc., \emph{A128607: Perfect powers whose divisor sums are
+perfect powers}, \url{https://oeis.org/A128607}.
+\bibitem{oeis608}
+OEIS Foundation Inc., \emph{A128608: Divisor sums of the terms of A128607},
+\url{https://oeis.org/A128608}.
+\end{thebibliography}
+\end{document}

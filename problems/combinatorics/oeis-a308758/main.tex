@@ -1,0 +1,86 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=.82in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newcommand{\N}{\mathbb Z_{\geq 0}}
+\begin{document}
+\begin{center}
+{\Large\bfseries The third-largest parts of four-part partitions}\par
+\medskip
+Pioneer project \quad $\cdot$ \quad 28 November 2026
+\end{center}
+
+\begin{abstract}
+Let $a_n$ be the sum of the third-largest parts over all partitions of $n$
+into four positive parts. We prove the ordinary generating function and
+constant-coefficient recurrence proposed by Colin Barker in OEIS A308758.
+The proof uses the four gaps of a sorted partition and the linear weight
+carried by the two gaps that determine its third-largest part.
+\end{abstract}
+
+Write each partition in weakly increasing order $u\leq v\leq w\leq z$, so its contribution to $a_n$ is $v$.
+Barker proposed both formulas on June 23, 2019 \cite{oeis}.
+
+\begin{theorem}\label{th:main}
+In $\mathbb Z[[x]]$,
+\[
+\sum_{n\geq0} a_nx^n
+ =\frac{x^4(1+x+x^2+x^3+x^4+x^5+x^6)}
+ {(1-x)^5(1+x)^3(1+x^2)^2(1+x+x^2)^2}.
+\]
+For every $n\geq16$,
+\begin{align*}
+ a_n={}&a_{n-2}+2a_{n-3}+2a_{n-4}-2a_{n-5}-3a_{n-6}-4a_{n-7}\\
+       &+4a_{n-9}+3a_{n-10}+2a_{n-11}-2a_{n-12}-2a_{n-13}-a_{n-14}+a_{n-16}.
+\end{align*}
+\end{theorem}
+
+\begin{proof}
+Use the nonnegative gaps $p=u-1$, $q=v-u$, $r=w-v$ and $s=z-w$.
+The inverse map has parts
+\[
+ (1+p,\ 1+p+q,\ 1+p+q+r,\ 1+p+q+r+s).
+\]
+Thus the total is $4+4p+3q+2r+s$ and the weight is $1+p+q$.
+Let $B=(1-x)(1-x^2)(1-x^3)(1-x^4)$. Each quadruple contributes
+$(1+p+q)x^{4+4p+3q+2r+s}$. Summing the constant term and the two linear
+weights separately gives
+\begin{align*}
+\sum_{n\geq0} a_nx^n
+ &= \sum_{p,q,r,s\in\N}(1+p+q)x^{4+4p+3q+2r+s}\\
+ &= \frac{x^4}{B}\left(1+\frac{x^4}{1-x^4}+\frac{x^3}{1-x^3}\right)\\
+ &= \frac{x^4(1-x^7)}{(1-x)(1-x^2)(1-x^3)^2(1-x^4)^2}.
+\end{align*}
+Only finitely many quadruples contribute to each coefficient. The second
+equality uses $\sum_{k\geq0}y^k=1/(1-y)$ and
+$\sum_{k\geq0}ky^k=y/(1-y)^2$ for $y=x^3$ or $x^4$. Factor $1-x^2$,
+$1-x^3$, and $1-x^4$, then cancel the factor $1-x$ from $1-x^7$.
+This gives the displayed generating function.
+
+Let $D(x)$ be its denominator. Multiplying the four factors gives
+\begin{align*}
+D(x)={}&1-x^2-2x^3-2x^4+2x^5+3x^6+4x^7-4x^9-3x^{10}\\
+       &-2x^{11}+2x^{12}+2x^{13}+x^{14}-x^{16}.
+\end{align*}
+The numerator has degree $10$. For $n\geq16$ the coefficient of $x^n$
+in $D(x)\sum_{j\geq0}a_jx^j$ therefore vanishes, and every shift in the
+resulting equation has a nonnegative index. Solving for $a_n$ gives the recurrence.
+\end{proof}
+
+\paragraph{Lean verification.}
+The merged Left to Solve statement uses truncated arithmetic sums for the
+gaps. The formal proof checks their generating-function rules directly.
+For $d>0$, let $A(m)=\sum_{0\leq i\leq m/d}f(m-di)$ and
+$W(m)=\sum_{0\leq i\leq m/d}i f(m-di)$, with integer bounds.
+Separating $i=0$ gives $A(m+d)=f(m+d)+A(m)$ and $W(m+d)=W(m)+A(m)$.
+Together with the initial coefficients, these give
+$(1-x^d)\mathcal A(x)=\mathcal F(x)$ and $(1-x^d)\mathcal W(x)=x^d\mathcal A(x)$
+for the corresponding ordinary generating functions. The remaining steps are
+polynomial identities and a coefficient comparison, checked in Lean 4.33.1.
+
+\begin{thebibliography}{9}
+\bibitem{oeis} The OEIS Foundation Inc., \emph{The On-Line Encyclopedia of Integer Sequences},
+\href{https://oeis.org/A308758}{entry A308758}.
+\end{thebibliography}
+\end{document}

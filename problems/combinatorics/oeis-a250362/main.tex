@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.83in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\title{The generating function and recurrence for OEIS A250362}
+\author{Pioneer project}
+\date{28 November 2026}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Counting the constant arrays excluded by A250362 gives an exact quartic formula with one initial exception. This proves both the generating function and the recurrence conjectured in the entry.
+\end{abstract}
+
+For \(n\ge 1\), let \(a_n\) be the number of integer arrays \((x_1,x_2,x_3,x_4)\) satisfying \(i\le x_i\le i+n\) for \(i=1,2,3,4\), with no value appearing more than three times. Set \(a_0=0\) for the generating function. Colin Barker conjectured the generating function and recurrence below in the OEIS entry \cite{oeis}.
+
+\begin{theorem}
+For \(n\ge 1\),
+\[
+a_n=(n+1)^4-\max(n-2,0).
+\]
+Consequently,
+\[
+\sum_{n\ge 1}a_n x^n
+=\frac{x(16+x+10x^2-2x^3-2x^4+x^5)}{(1-x)^5}.
+\]
+For every \(n>6\),
+\[
+a_n=5a_{n-1}-10a_{n-2}+10a_{n-3}-5a_{n-4}+a_{n-5}.
+\]
+\end{theorem}
+
+\begin{proof}
+There are \((n+1)^4\) unrestricted arrays because each coordinate has \(n+1\) choices. An array violates the multiplicity bound precisely when all four coordinates coincide. Its common integer value must lie in
+\[
+[1,n+1]\cap[2,n+2]\cap[3,n+3]\cap[4,n+4]=[4,n+1].
+\]
+There are \(\max(n-2,0)\) such values, proving the count. In particular the empirical quartic in the OEIS entry, \(n^4+4n^3+6n^2+3n+3\), holds at every \(n\ge2\), and \(a_1=16\).
+
+In formal power series, applying \(1+x\,d/dx\) four times to \((1-x)^{-1}\) gives
+\[
+\sum_{n\ge0}(n+1)^4x^n=\frac{1+11x+11x^2+x^3}{(1-x)^5}.
+\]
+The excluded constants contribute \(\sum_{n\ge3}(n-2)x^n=x^3/(1-x)^2\). Removing the degree-zero term and the excluded constants gives
+\[
+\frac{1+11x+11x^2+x^3}{(1-x)^5}-1-\frac{x^3}{(1-x)^2}
+=\frac{16x+x^2+10x^3-2x^4-2x^5+x^6}{(1-x)^5}.
+\]
+The numerator has degree six. Comparing coefficients after multiplication by \((1-x)^5\) gives the stated recurrence.
+\end{proof}
+
+For example, at \(n=3\), each coordinate has four choices, and the unique excluded array is \((4,4,4,4)\). This gives \(a_3=255\). At \(n=4\), the two constant arrays have common values 4 and 5, giving \(a_4=623\).
+
+\begin{thebibliography}{1}
+\bibitem{oeis}
+OEIS Foundation Inc., entry A250362, submitted by R. H. Hardin (19 November 2014), with conjectures by Colin Barker (13 November 2018).
+\url{https://oeis.org/A250362}
+\end{thebibliography}
+\end{document}
