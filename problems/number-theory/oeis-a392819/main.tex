@@ -1,0 +1,110 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=.78in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+
+\title{Natural density of the prime--exponent divisibility sequence}
+\author{Pioneer project}
+\date{28 November 2026}
+
+\begin{document}
+\begin{center}
+{\Large\bfseries Natural density of the prime--exponent divisibility sequence}\par\smallskip
+Pioneer project \quad 28 November 2026
+\end{center}
+
+\begin{abstract}
+We prove the density-zero conjecture for OEIS A392819, whose terms \(n\)
+satisfy \(p+v_p(n)\mid n\) for every prime divisor \(p\) of \(n\).
+A large prime divisor forces an additional divisibility by a modulus of
+size at least \(p^2\). Integers with only small prime divisors contribute
+zero density. We also give an odd term with two distinct prime divisors.
+\end{abstract}
+
+For each positive integer \(n\) and prime \(p\), let \(v_p(n)\) denote
+the exponent of \(p\) in the prime factorization of \(n\). Set
+\[
+  S=\{n\ge 1 : p+v_p(n)\mid n \text{ for every prime }p\mid n\},
+  \qquad S(X)=\#\{n\in S: n\le X\}.
+\]
+Felix Huber introduced the terms of \(S\) as OEIS A392819 and conjectured
+that the set has natural density zero \cite{a392819}. The same set is
+the fixed-point set of the least-common-multiple map in A393351
+\cite{a393351}.
+
+\begin{theorem}
+\[
+  \lim_{X\to\infty}\frac{S(X)}{X}=0.
+\]
+More precisely, for integers \(R\ge 2\), \(K\ge 1\), and \(X\ge 1\),
+\[
+ \frac{S(X)}{X}
+ \le \frac{1}{X}\prod_{m=2}^{R-1}m^K
+      +\frac{R}{2^K}+\frac{2}{R-1},
+\]
+with an empty product interpreted as one.
+\end{theorem}
+
+\begin{proof}
+Suppose \(n\in S\) has a prime divisor \(p\ge R\). If \(v_p(n)\ge 2\),
+then \(p^2\mid n\). If \(v_p(n)=1\), the defining condition gives
+\(p+1\mid n\). Since \(p\) and \(p+1\) are coprime, this gives
+\(p(p+1)\mid n\). The number of multiples of a positive integer \(d\)
+up to \(X\) is at most \(X/d\). Counting by the two possible moduli
+for each prime bounds the number of these terms by
+\[
+ X\sum_{p\ge R}\left(\frac1{p^2}+\frac1{p(p+1)}\right)
+ \le 2X\sum_{m=R}^{\infty}\frac1{m^2}
+ \le 2X\sum_{m=R}^{\infty}
+   \left(\frac1{m-1}-\frac1m\right)
+ =\frac{2X}{R-1}.
+\]
+The first sum is over primes. The last inequality uses
+\(m(m-1)\le m^2\).
+
+Every remaining term has all prime factors smaller than \(R\).
+If any such prime occurs to exponent at least \(K\), the term belongs
+to a class of multiples of \(p^K\). Summing their counts over
+\(2\le p<R\) bounds the total by \(RX/2^K\). Otherwise each exponent
+is smaller than \(K\), and the term is at most
+\(\prod_{m=2}^{R-1}m^K\), since every prime factor is included in
+this product with exponent \(K\). The claimed inequality follows.
+First let \(X\to\infty\) with \(K,R\) fixed, then let \(K\to\infty\),
+and finally let \(R\to\infty\). The lower bound \(S(X)/X\ge 0\)
+gives the limit.
+\end{proof}
+
+\begin{proposition}
+Every odd term of A392819 is a square. An odd term need not be a
+prime power.
+\end{proposition}
+
+\begin{proof}
+For each prime divisor \(p\) of an odd term \(n\), the integer
+\(p+v_p(n)\) divides \(n\) and is therefore odd. As \(p\) is odd,
+\(v_p(n)\) is even. This proves the square claim. For the second claim,
+take \(5625=3^2\cdot5^4\). Both \(3+2=5\) and \(5+4=9\) divide
+\(5625\), so it is an odd term with two prime divisors. This corrects
+the assertion in the A392819 comments that every odd term is a prime
+power \cite{a392819}.
+\end{proof}
+
+The accompanying verifier computes \(S(X)\) directly by trial division
+and checks the factorization and the two divisibilities for \(5625\).
+It gives \(S(100)=8\), \(S(1000)=30\), \(S(10000)=122\), and
+\(S(50000)=313\).
+
+\begin{thebibliography}{9}
+\bibitem{a392819}
+OEIS Foundation Inc., \emph{The On-Line Encyclopedia of Integer Sequences},
+entry A392819, submitted by Felix Huber, 23 February 2026.
+\url{https://oeis.org/A392819}.
+
+\bibitem{a393351}
+OEIS Foundation Inc., \emph{The On-Line Encyclopedia of Integer Sequences},
+entry A393351. \url{https://oeis.org/A393351}.
+\end{thebibliography}
+\end{document}

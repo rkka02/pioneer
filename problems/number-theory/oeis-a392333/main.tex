@@ -1,0 +1,90 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[margin=.82in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,booktabs,graphicx}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newcommand{\K}{\operatorname{sf}}
+\newcommand{\vp}{\nu}
+\title{The first member of the Erd\H{o}s--Graham set \(D_6\) with four or more prime factors}
+\author{Pioneer project}
+\date{28 November 2026}
+\begin{document}
+\begin{center}
+{\Large\bfseries The first member of the Erd\H{o}s--Graham set \(D_6\)\\
+with four or more prime factors}\par\smallskip
+Pioneer project \quad 28 November 2026
+\end{center}
+\begin{abstract}
+Chai Wah Wu asked for the first member of OEIS A392333 with at least four prime factors. We prove that it is \(435643=13\cdot23\cdot31\cdot47\). Every smaller endpoint with at least four prime factors admits a square product of five distinct factorials. At this endpoint the minimum number of factorials in a square product is exactly six. This determines the first such member of \(D_6\) in the Erd\H{o}s--Graham factorial problem. The proof uses elementary identities, prime-valuation bounds and two reproducible finite enumerations.
+\end{abstract}
+
+\section{The finite question}
+
+For \(e>1\), let \(F(e)\) be the least \(k\ge2\) admitting
+\(1\le n_1<\cdots<n_k=e\) with \(\prod_i n_i!\) a square, when such a \(k\) exists. Erd\H{o}s and Graham studied \(D_k=\{e:F(e)=k\}\) \cite{eg,bloom}. Write \(\Omega(e)\) for the number of prime factors counted with multiplicity. OEIS A392333 lists non-semiprime composite \(e\) for which a square product with exactly five factorials is impossible. Its first 657 tabulated terms are products of three distinct primes \cite{oeis}. The question asks for the first term with \(\Omega(e)\ge4\).
+
+\begin{theorem}
+Put \(E=435643\). Every \(e<E\) with \(\Omega(e)\ge4\) admits a square product of five distinct positive-index factorials ending in \(e!\). No such product exists at \(E\), and \(F(E)=6\). Consequently \(E\) is both the requested term of A392333 and the least member of \(D_6\) with \(\Omega(e)\ge4\).
+\end{theorem}
+
+\section{Earlier endpoints}
+
+Write \(\K(x)=\prod_{\vp_p(x)\ {\rm odd}}p\), the squarefree kernel. For \(e=pm\) with least prime factor \(p\le11\), take five indices
+\[
+ t,\quad qm-1,\quad qm,\quad e-1,\quad e,
+\]
+with \((p,q,t)\) in the table. The square class of their factorial product is that of \(t!\,qm\,e=t!pq\,m^2\), which is a square in each row.
+\[
+\begin{array}{c|rrrrr}
+p & 2&3&5&7&11\\
+q & 1&2&1&5&7\\
+t & 2&3&6&7&11\\
+\K(t!) &2&6&5&35&77
+\end{array}
+\]
+Since \(\Omega(e)\ge4\), \(m\ge p^3\), so \(t<qm-1\) and \(qm<e-1\) throughout. If \(p>11\) and \(e=r^2m\) for some prime \(r\), use \(1,m-1,m,e-1,e\). Here \(m\ge13^2\), and \(me=(rm)^2\). These two constructions cover 193,806 earlier endpoints. The remaining candidates are squarefree with at least four prime factors, all at least 13. There are 109 such candidates below \(E\). Each row of the companion witness table gives \(a,b,c,d\) for which \(a!b!c!d!e!\) is square.
+
+The first candidate is \(96577=13\cdot17\cdot19\cdot23\). A witness uses the indices 5, 7, 23, 96576 and 96577. The verifier tests all prime exponents. Here the shorter check is \(\K(5!\,7!\,23!)=96577\).
+
+\begin{figure}[ht]
+\centering\includegraphics[width=.85\linewidth]{endpoints.pdf}
+\caption{Every squarefree candidate with at least four prime divisors, all at least 13, through \(E\). The witness table certifies each vertical mark. The diamond is the first excluded endpoint.}
+\end{figure}
+
+\section{Exhaustive exclusion at the endpoint}
+
+Two positive integers have the same square class exactly when their vectors of prime valuations modulo two agree. Fix \(e=E\) and suppose \(a<b<c<d<e\) gives a square. With \(P=435641\), the largest prime below \(e\), each factorial of index between \(P\) and \(e\) contains \(P\) once. Hence \(d\ge P\), leaving two cases. For each set \(Q=\K(e!/d!)\), put \(q\) equal to its largest prime factor. We must have \(c\ge q\), since \(a!b!c!\) has the square class of \(Q\).
+
+For any \(c\ge3\) let \(r\) be the largest prime at most \(c\). Bertrand's postulate gives \(r>c/2\), so \(r\) has exponent one in \(c!\). If \(r>q\), then \(b\ge r\), since otherwise \(a!b!c!\) would have odd \(r\)-valuation. Thus it suffices to try
+\[
+ \max(3,q)\le c<d,\qquad
+ b_0\le b<c,\qquad
+ b_0=\begin{cases}r,&r>q,\\2,&r\le q.\end{cases}
+\]
+For each triple \((b,c,d)\), index the factorials \(a!\) by the parities of the first 64 prime valuations. Look up all \(1\le a<b\) that match the signature required for a square. For every match, test all primes \(p\le E\) using Legendre's formula \(\vp_p(n!)=\sum_{j\ge1}\lfloor n/p^j\rfloor\). Projection cannot discard a square. The exact counts are
+\[
+\begin{array}{r|l|r|r|r}
+ d & \text{primes in }Q & (b,c)\text{ pairs} & a\text{ matches} & \text{squares}\\ \midrule
+ 435642 &13,23,31,47 &4\,029\,063&94&0\\
+ 435641 &2,3,13,17,23,31,47,4271 &4\,016\,263&90&0 .
+\end{array}
+\]
+A second implementation forms the factorial signatures by sieving and maps each prime deterministically to a 64-bit vector. It applies the same necessary bounds and checks every surviving candidate against all prime valuations. Both enumerations independently produce a witness for each of the 109 earlier candidates and exclude \(E\).
+
+\section{The minimum length at \(E\)}
+
+The squarefree kernels in the table rule out a two-factorial square. A three-factorial square would require \(\K(a!)=Q\). Its largest prime \(q\) restricts \(a\) to the interval from \(q\) through the integer preceding the next prime, by Bertrand's postulate again. In the first row \(a=47,48,49,50,51,52\) fail at the primes \(3,23,23,2,2,2\), respectively. In the second row \(a=4271,4272\) both fail at \(2\). A four-factorial square containing \(1!\) would give a three-factorial square by removing it. Any other four-factorial square would give a five-factorial square by adjoining \(1!\).
+
+Finally the six indices
+\[
+ 12,\ 13,\ 33510,\ 33511,\ 435642,\ 435643
+\]
+form three adjacent pairs. Their product of factorials has the square class of
+\(13\cdot33511\cdot435643=435643^2\). This proves \(F(E)=6\). The question about the density of \(D_6\) in Erd\H{o}s Problem 374 remains open.
+
+\begin{thebibliography}{9}
+\bibitem{oeis} C. W. Wu, OEIS A392333, 2026. \url{https://oeis.org/A392333}.
+\bibitem{eg} P. Erd\H{o}s and R. L. Graham, \emph{On products of factorials}, Bulletin of the Institute of Mathematics, Academia Sinica 4 (1976), 337--355. \url{https://users.renyi.hu/~p_erdos/1976-25.pdf}.
+\bibitem{bloom} T. F. Bloom, \emph{Erd\H{o}s Problem 374}. \url{https://www.erdosproblems.com/374}.
+\end{thebibliography}
+\end{document}

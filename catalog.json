@@ -592,6 +592,178 @@
         "Parametrizes four-part partitions by their gaps and proves both the recurrence and the generating function."
       ],
       "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a111097",
+      "title": "The maximum-likelihood urn size at the first repeated draw",
+      "field": "probability",
+      "subfield": "maximum-likelihood",
+      "path": "problems/probability/oeis-a111097",
+      "status": "proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A111097",
+          "url": "https://oeis.org/A111097"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a111097",
+          "url": "https://lefttosolve.com/p/oeis-a111097"
+        }
+      ],
+      "challenge_sha256": "7c7fdaccb9b05745015aa26fc073f968175ae986218c2c6bfa3b2294e1fb06ae",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/lefttosolve2/open-math-agents/88838da7f212f235c6426e67244c02a1e958cb5b/statements/oeis-a111097.lean",
+        "proof_sha256": "688a68b0beacc188c1bb48c6868822d7003b1316fb2861954b3363ca16ba9fea",
+        "target": "OMA.S_oeis_a111097.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-pr",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25391"
+      },
+      "highlights": [
+        "Locates the unique integer maximizer for every sample size and proves the second differences and generating function."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a392819",
+      "title": "Natural density of the prime–exponent divisibility sequence",
+      "field": "number-theory",
+      "subfield": "arithmetic-density",
+      "path": "problems/number-theory/oeis-a392819",
+      "status": "proof-supplied-for-statement-review",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A392819",
+          "url": "https://oeis.org/A392819"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a392819",
+          "url": "https://lefttosolve.com/p/oeis-a392819"
+        }
+      ],
+      "challenge_sha256": "4eac9ef877d9a6c3a75406d193e4c58aec84efbe36e0911cfbf3695af545bc6f",
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "verification": {
+        "checker_commit": "88838da7f212f235c6426e67244c02a1e958cb5b",
+        "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+        "statement_raw_url": "https://raw.githubusercontent.com/rkka02/open-math-agents/50b28b6b2a301cd69ae9fe8d72ae0e335fcdc363/statements/oeis-a392819.lean",
+        "proof_sha256": "0c41bdb99735ece6db37a16d1baf6015e65a0adb6701e3d32d4dc8f22418677d",
+        "target": "OMA.S_oeis_a392819.main",
+        "result": "kernel accepted",
+        "axioms": [
+          "propext",
+          "Classical.choice",
+          "Quot.sound"
+        ]
+      },
+      "submission": {
+        "stage": "proof-attached-to-statement-review",
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25657"
+      },
+      "highlights": [
+        "Proves natural density zero and exhibits 5625 as an odd term with two different prime divisors."
+      ],
+      "manuscript": "main.pdf"
+    },
+    {
+      "slug": "oeis-a392333",
+      "title": "The first member of the Erdős–Graham set D₆ with four or more prime factors",
+      "field": "number-theory",
+      "subfield": "computational-number-theory",
+      "path": "problems/number-theory/oeis-a392333",
+      "status": "mathematical-proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A392333",
+          "url": "https://oeis.org/A392333"
+        },
+        {
+          "catalog": "Erdős Problems",
+          "id": "374",
+          "scope": "finite extremum in D6; density question open",
+          "url": "https://www.erdosproblems.com/374"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "erdos-374",
+          "scope": "parent Erdős–Graham density problem",
+          "url": "https://lefttosolve.com/p/erdos-374"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a389148",
+          "scope": "parent five-factorial sequence",
+          "url": "https://lefttosolve.com/p/oeis-a389148"
+        }
+      ],
+      "verification_scope": "Computer-assisted proof with two independent C++17 enumerators and Lean lemmas for the search bounds and six-factor witness.",
+      "submission": {
+        "url": "https://github.com/lefttosolve2/open-math-agents/issues/25442",
+        "stage": "catalogue-submission"
+      },
+      "highlights": [
+        "Finds the least such endpoint, 435643. Two exact enumerations and a six-factor witness establish F(435643) = 6."
+      ],
+      "manuscript": "main.pdf",
+      "certificate_files": [
+        "verify.cpp",
+        "search.cpp",
+        "witnesses.csv",
+        "Coverage.lean"
+      ],
+      "witness_table_sha256": "ba8c6be148858d5fbf03923fbe83f53d5d3905a6410c795104f0e7f71e227fb2",
+      "lean_toolchain": "leanprover/lean4:v4.33.1"
+    },
+    {
+      "slug": "oeis-a401548",
+      "title": "When greedy subtraction gives a shortest sum of squares",
+      "field": "number-theory",
+      "subfield": "analytic-number-theory",
+      "path": "problems/number-theory/oeis-a401548",
+      "status": "mathematical-proof-submitted",
+      "sources": [
+        {
+          "catalog": "OEIS",
+          "id": "A401548",
+          "url": "https://oeis.org/A401548"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a401548",
+          "url": "https://lefttosolve.com/p/oeis-a401548"
+        }
+      ],
+      "verification_scope": "Complete analytic proof in the manuscript. Lean checks the greedy-root bijection and the uniform divisibility bound.",
+      "submission": {
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25333",
+        "stage": "manuscript-in-statement-review"
+      },
+      "highlights": [
+        "Proves the counting asymptotic and determines its constant as (16/525)·2^(17/8)."
+      ],
+      "manuscript": "main.pdf",
+      "challenge_url": "https://github.com/rkka02/open-math-agents/blob/5243c51be370a432f03612cfb925ff69dd29bc1d/statements/oeis-a401548.lean",
+      "challenge_sha256": "7e2c455795449315c419362bdb782772e2f76d8e9025875d310fc97bff2c03c6",
+      "certificate_files": [
+        "StructuralLemmas.lean",
+        "verify.py"
+      ],
+      "lean_toolchain": "leanprover/lean4:v4.33.1"
     }
   ]
 }

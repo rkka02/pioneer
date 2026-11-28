@@ -1,0 +1,112 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\title{When greedy subtraction gives a shortest sum of squares}
+\author{Pioneer project}
+\date{28 November 2026}
+\begin{document}
+\maketitle
+\begin{abstract}
+Let \(G(n)\) count the squares subtracted by the greedy algorithm and let \(L(n)\) be the minimum length of a representation of \(n\) as a sum of positive squares. We prove the conjecture in OEIS A401548 and determine its leading constant:
+\(\#\{n\le X:G(n)=L(n)\}\sim (16/525)2^{17/8}X^{15/16}\).
+Four-step greedy representations give the leading term. An anisotropic lattice-point count gives their total, and a congruence calculation shows that the fraction requiring four squares tends to \(3/20\).
+\end{abstract}
+
+\section{Greedy roots}
+
+For a positive remainder \(r\), the greedy algorithm subtracts \(\lfloor\sqrt r\rfloor^2\) and stops when the remainder is zero. The counting asymptotic for inputs on which this gives a shortest representation was conjectured by Abo Khmiss \cite{oeis}.
+
+\begin{theorem}\label{thm:main}
+As \(X\to\infty\),
+\[
+\#\{1\le n\le X:G(n)=L(n)\}
+ \sim \frac{16}{525}\,2^{17/8} X^{15/16}.
+\]
+In fact, the number of inputs with \(G(n)=4\) is asymptotic to
+\(\frac{64}{315}2^{17/8}X^{15/16}\), and the proportion of those inputs for which \(L(n)=4\) tends to \(3/20\).
+\end{theorem}
+
+Write \(d\) for the number of greedy steps and \(a_1,\ldots,a_d\) for the positive square roots in their subtraction order. A tuple corresponds uniquely to an input \(n\le X\) with \(G(n)=d\) if and only if
+\[
+ \sum_{i=1}^d a_i^2\le X,\qquad
+ \sum_{i=j+1}^d a_i^2\le 2a_j\quad (1\le j<d).                 \tag{1}\label{eq:constraints}
+\]
+Indeed, the latter inequality says that the remainder just before step \(j\) is an integer in \([a_j^2,(a_j+1)^2)\). The sum of the squares determines \(n\), and the greedy algorithm uniquely determines the tuple.
+
+Since \(a_1\le\sqrt X\) and \(a_{j+1}\le\sqrt{2a_j}\), for each fixed \(d\) there are \(O(X^{1-2^{-d}})\) such tuples. In particular the inputs with at most three greedy steps contribute only \(O(X^{7/8})\) to the asserted asymptotic.
+
+\section{Volume and fixed congruence conditions}
+
+For \(d=4\) write \(s_j=X^{1/2^j}\), and scale \(a_j=s_jx_j\). Then \(s_{j+1}^2=s_j\). Dividing the first inequality of \eqref{eq:constraints} by \(X\), and the \(j\)-th remaining inequality by \(s_j\), gives limiting inequalities defining the compact region
+\[
+ D=\{(x_1,x_2,x_3,x_4)\in [0,\infty)^4:
+          x_1\le1,\ x_{j+1}^2\le 2x_j\ (1\le j\le3)\}.
+\]
+Its boundary is a subset of finitely many graphs and hyperplanes and has volume zero.
+
+\begin{lemma}\label{lem:lattice}
+For a fixed integer \(q\ge1\) and a fixed set \(B\subseteq(\mathbb Z/q\mathbb Z)^4\), the number of tuples in \eqref{eq:constraints} with \(d=4\) and residue vector in \(B\) is
+\[
+ \frac{|B|}{q^4}\operatorname{vol}(D)X^{15/16}+o(X^{15/16}).
+\]
+\end{lemma}
+
+\begin{proof}
+Fix a residue vector. Its scaled tuples form a shifted rectangular mesh of side lengths \(q/s_j\). Every admissible point lies in a common compact box by the successive bounds on \(a_j\). On that box the inequalities in the scaled variables converge uniformly to the defining inequalities of \(D\). Away from arbitrarily small neighborhoods of the equality sets, their signs are eventually the signs of the limiting inequalities. These neighborhoods may be covered by finitely many boxes of arbitrarily small total volume since the equality sets in the common box are compact and have volume zero. Thus the rectangular Riemann sums for the admissible points converge to \(\operatorname{vol}(D)\), with cell volume \(q^4/\prod_j s_j=q^4X^{-15/16}\). Summing over \(B\) gives the result.
+\end{proof}
+
+Iterated integration yields
+\begin{align*}
+ \operatorname{vol}(D)
+ &=\int_0^1 \int_0^{\sqrt{2x_1}}\int_0^{\sqrt{2x_2}}
+            \int_0^{\sqrt{2x_3}} dx_4\,dx_3\,dx_2\,dx_1\\
+ &=\frac{2^{17/8}\cdot64}{315}.
+\end{align*}
+The inner two integrals yield \(\frac{2}{3}2^{5/4}x_2^{3/4}\). The last two contribute a factor of \(2^{7/8}(4/7)(8/15)\).
+
+\section{The four-square obstruction}
+
+Lagrange gives \(L(n)\le4\) for every \(n>0\). By Legendre, \(L(n)=4\) exactly when \(n=4^a(8b+7)\) for integers \(a,b\ge0\) \cite{hardy}. Any zero summands in these theorems may be deleted. For a root tuple write \(Q(\mathbf a)=a_1^2+a_2^2+a_3^2+a_4^2\).
+
+For \(M\ge1\), let \(p_M\) be the proportion of four-tuples modulo \(2^{2M+1}\) for which
+\[
+ Q(\mathbf a)\equiv 7\cdot4^a \pmod {8\cdot4^a}
+ \quad\text{for some }0\le a<M.                             \tag{2}\label{eq:obstruction}
+\]
+The modulus \(2^{2M+1}\) is divisible by every modulus in \eqref{eq:obstruction}. Modulo \(8\), the squares have values \(0,1,4\) with probabilities \(1/4,1/2,1/4\). The sum equals \(7\bmod 8\) precisely when three coordinates are odd and the remaining coordinate is \(2\bmod4\). Thus \(p_1=4(1/2)^3(1/4)=1/8\).
+
+If \(a\ge1\), then \(Q(\mathbf a)\equiv0\bmod4\), which forces the coordinates to be all even or all odd. For all even, division of each coordinate by \(2\) reduces the exponent \(a\) by one and leaves a uniform residue vector at the modulus needed for \(p_{M-1}\). This gives contribution \(p_{M-1}/16\). For all odd, \(Q\equiv4\bmod8\), so \(a=1\) is the only possible exponent. Conditional on being odd, the squares modulo \(32\) are uniform on \(1,9,17,25\), as one sees by squaring the sixteen odd residues. The sum is then uniform on \(4,12,20,28\) modulo \(32\), and \eqref{eq:obstruction} for \(a=1\) requires \(28\). The contribution is \(1/64\). For \(M\ge2\) we obtain
+\[
+ p_M=\frac18+\frac1{64}+\frac{p_{M-1}}{16},
+ \qquad
+ \lim_{M\to\infty}p_M=\frac3{20}.
+\]
+
+It remains to control the part of the obstruction with \(a\ge M\). If \(4^M\mid Q(\mathbf a)\), every coordinate is divisible by \(2^{M-1}\). For \(M=1\) this is automatic. For \(M\ge2\), a sum divisible by \(16\) must have all four coordinates even because four odd squares sum to \(4\bmod8\) and mixed parity cannot sum to \(0\bmod4\). Dividing by \(4\) gives the claim by induction. For fixed \(M\), Lemma~\ref{lem:lattice} therefore bounds the normalized tail count in the limit by \(2^{-4(M-1)}\operatorname{vol}(D)\). Applying the same lemma to \eqref{eq:obstruction}, then sending \(M\to\infty\), proves that the number of four-step inputs requiring four squares is asymptotic to \((3/20)\operatorname{vol}(D)X^{15/16}\).
+
+Combining the four-step count with the \(O(X^{7/8})\) estimate and Lagrange's upper bound proves Theorem~\ref{thm:main}. The density \(3/20\) is computed using the four greedy roots. For a uniformly sampled integer the four-square obstruction has density \(\sum_{a\ge0}(8\cdot4^a)^{-1}=1/6\), so using that density in the tuple count would change the leading constant.
+
+\section{Exact checks at finite cutoffs}
+
+The accompanying program counts the four-step tuples using \eqref{eq:constraints} and compares those counts with a direct implementation of the greedy algorithm. The final column agrees with the counts in A401548 \cite{oeis}.
+\[
+\begin{array}{r|rrr}
+X & G(n)=4 & G(n)=L(n)=4 & G(n)=L(n)\\ \hline
+10^4 & 3{,}083 & 785 & 3{,}560\\
+10^5 & 29{,}441 & 6{,}621 & 26{,}394\\
+10^6 & 274{,}378 & 59{,}510 & 202{,}012
+\end{array}
+\]
+Each column counts positive integers \(n\le X\).
+
+\begin{thebibliography}{9}
+\bibitem{oeis}
+A. Khmiss, \emph{Numbers for which greedy subtraction gives a shortest sum of positive squares}, The On-Line Encyclopedia of Integer Sequences,
+\href{https://oeis.org/A401548}{A401548}, 2026.
+\bibitem{hardy}
+G. H. Hardy and E. M. Wright, \emph{An Introduction to the Theory of Numbers}, 6th ed., revised by D. R. Heath-Brown and J. H. Silverman, Oxford University Press, 2008, Chap.~20.
+\end{thebibliography}
+\end{document}
