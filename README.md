@@ -22,7 +22,7 @@ Mathematical problems are organized by **field**, while external references (Pro
 
 ## Left to Solve manuscripts
 
-The papers below give complete mathematical arguments for specific questions in the OEIS records. A392333 asks a finite question about the factorial sets in Erdős Problem 374. Its own listing was requested through the project’s catalogue issue tracker. Each directory provides the proof, sources, verification instructions and a public submission link.
+Each of the twelve papers links to the mathematical argument, its verification files and its public submission. The paper on factorial squares proves the 1976 Erdős–Graham semiprime conjecture recorded in A389148 and also answers the finite question in A392333.
 
 | Problem and manuscript | Result | Public submission |
 |---|---|---|
@@ -35,11 +35,11 @@ The papers below give complete mathematical arguments for specific questions in 
 | [A308758](problems/combinatorics/oeis-a308758/main.pdf) | Parametrizes four-part partitions by their gaps and proves both the recurrence and the generating function. [Files](problems/combinatorics/oeis-a308758/) | [Formal proof PR](https://github.com/lefttosolve2/open-math-agents/pull/25084) |
 | [A321225](problems/combinatorics/oeis-a321225/main.pdf) | Shows how nine consecutive cuts determine a five-digit extension and proves Wu’s two formulas. [Files](problems/combinatorics/oeis-a321225/) | [Formal proof PR](https://github.com/lefttosolve2/open-math-agents/pull/24880) |
 | [A376182](problems/combinatorics/oeis-a376182/main.pdf) | Proves each positive integer occurs exactly once and gives its row and column. [Files](problems/combinatorics/oeis-a376182/) | [Lean proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/25014) |
-| [A392333 · Erdős 374](problems/number-theory/oeis-a392333/main.pdf) | Finds the least such endpoint, 435643. Two exact enumerations and a six-factor witness establish F(435643) = 6. [Files](problems/number-theory/oeis-a392333/) | [Catalogue submission](https://github.com/lefttosolve2/open-math-agents/issues/25442) |
+| [Erdős–Graham · A389148 / A392333](problems/number-theory/oeis-a392333/main.pdf) | For every fixed k ≥ 2, almost all integers with k prime factors require exactly six factorials. The least such endpoint with at least four prime factors is 435643. [Files](problems/number-theory/oeis-a392333/) | [Manuscript in statement review](https://github.com/lefttosolve2/open-math-agents/pull/25919) · [Finite certificate](https://github.com/lefttosolve2/open-math-agents/issues/25442) |
 | [A392819](problems/number-theory/oeis-a392819/main.pdf) | Proves natural density zero and exhibits 5625 as an odd term with two different prime divisors. [Files](problems/number-theory/oeis-a392819/) | [Lean proof in statement review](https://github.com/lefttosolve2/open-math-agents/pull/25657) |
 | [A401548](problems/number-theory/oeis-a401548/main.pdf) | Proves the counting asymptotic and determines its constant as (16/525)·2^(17/8). [Files](problems/number-theory/oeis-a401548/) | [Manuscript in statement review](https://github.com/lefttosolve2/open-math-agents/pull/25333) |
 
-Left to Solve reviews a new translation before opening the formal proof stage. The linked reviews contain the completed proofs and identify which parts have passed the Lean kernel. The catalogue request for A392333 includes the finite certificate. The drafts and proofs were prepared with OpenAI Codex.
+Left to Solve reviews a new translation before opening its formal proof stage. The linked reviews contain the completed proofs and identify which parts have passed the Lean kernel. The drafts and proofs were prepared with OpenAI Codex.
 
 The [catalog](catalog.json) gives statement and proof hashes for the full Lean submissions. To reproduce a kernel check, clone [open-math-agents](https://github.com/lefttosolve2/open-math-agents), run its `tools/oma.sh setup`, and follow the instructions in the paper’s directory.
 

@@ -681,53 +681,73 @@
     },
     {
       "slug": "oeis-a392333",
-      "title": "The first member of the Erdős–Graham set D₆ with four or more prime factors",
+      "title": "Almost primes in square products of factorials",
       "field": "number-theory",
-      "subfield": "computational-number-theory",
+      "subfield": "analytic-and-computational-number-theory",
       "path": "problems/number-theory/oeis-a392333",
       "status": "mathematical-proof-submitted",
       "sources": [
         {
           "catalog": "OEIS",
+          "id": "A389148",
+          "scope": "semiprime relative-density conjecture",
+          "url": "https://oeis.org/A389148"
+        },
+        {
+          "catalog": "Left to Solve",
+          "id": "oeis-a389148",
+          "scope": "semiprime relative-density conjecture",
+          "url": "https://lefttosolve.com/p/oeis-a389148"
+        },
+        {
+          "catalog": "Original paper",
+          "id": "Erdős–Graham 1976",
+          "scope": "semiprime conjecture on page 353",
+          "url": "https://combinatorica.hu/~p_erdos/1976-25.pdf"
+        },
+        {
+          "catalog": "OEIS",
           "id": "A392333",
+          "scope": "first excluded endpoint with four or more prime factors",
           "url": "https://oeis.org/A392333"
         },
         {
           "catalog": "Erdős Problems",
           "id": "374",
-          "scope": "finite extremum in D6; counting-function order established by Yudin",
+          "scope": "order-of-growth problem addressed by Yudin in 2026",
           "url": "https://www.erdosproblems.com/374"
         },
         {
-          "catalog": "Left to Solve",
-          "id": "erdos-374",
-          "scope": "parent Erdős–Graham density problem",
-          "url": "https://lefttosolve.com/p/erdos-374"
-        },
-        {
-          "catalog": "Left to Solve",
-          "id": "oeis-a389148",
-          "scope": "parent five-factorial sequence",
-          "url": "https://lefttosolve.com/p/oeis-a389148"
+          "catalog": "arXiv",
+          "id": "2610.01899",
+          "scope": "Yudin, Corollary 6.2",
+          "url": "https://arxiv.org/abs/2610.01899"
         }
       ],
-      "verification_scope": "Computer-assisted proof with two independent C++17 enumerators and Lean lemmas for the search bounds and six-factor witness.",
+      "verification_scope": "The full relative-density proof is in the manuscript using Yudin’s Corollary 6.2 and the Brun–Titchmarsh inequality. Two independent C++17 enumerators certify the finite extremum. The Lean files verify the stated algebraic and search lemmas.",
       "submission": {
-        "url": "https://github.com/lefttosolve2/open-math-agents/issues/25442",
-        "stage": "catalogue-submission"
+        "url": "https://github.com/lefttosolve2/open-math-agents/pull/25919",
+        "stage": "manuscript-in-statement-review"
       },
       "highlights": [
-        "Finds the least such endpoint, 435643. Two exact enumerations and a six-factor witness establish F(435643) = 6."
+        "For every fixed k ≥ 2, almost all integers with k prime factors require exactly six factorials. The least such endpoint with at least four prime factors is 435643."
       ],
       "manuscript": "main.pdf",
       "certificate_files": [
         "verify.cpp",
         "search.cpp",
         "witnesses.csv",
-        "Coverage.lean"
+        "Coverage.lean",
+        "AdjacentReduction.lean"
       ],
       "witness_table_sha256": "ba8c6be148858d5fbf03923fbe83f53d5d3905a6410c795104f0e7f71e227fb2",
-      "lean_toolchain": "leanprover/lean4:v4.33.1"
+      "lean_toolchain": "leanprover/lean4:v4.33.1",
+      "supplementary_submission": {
+        "url": "https://github.com/lefttosolve2/open-math-agents/issues/25442",
+        "stage": "catalogue-submission"
+      },
+      "challenge_url": "https://github.com/rkka02/open-math-agents/blob/959160f54bca09f9fab9605678dc8761919fe1dc/statements/oeis-a389148.lean",
+      "challenge_sha256": "fc73332373d9a5f00586ea76891e37166eebc445c49774c2b0aed5a58bd0c983"
     },
     {
       "slug": "oeis-a401548",
